@@ -1,0 +1,59 @@
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Docker volumes and data
+postgres_data/
+mysql_data/
+data/
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+*.tmp
+*.temp
+temp/
+tmp/
+
+# IDE files
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Jupyter checkpoints
+.ipynb_checkpoints/
+
+# Data science files
+*.csv
+*.xlsx
+*.xls
+*.json
+*.xml
+*.parquet
+
+# Model files
+*.pkl
+*.joblib
+*.h5
+*.model
+
+# Backup files
+*.bak
+*.backup
