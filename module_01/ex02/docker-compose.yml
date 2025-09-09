@@ -13,26 +13,13 @@ services:
     entrypoint: ["/scripts/entrypoint.sh"]
     restart: unless-stopped
     networks:
-      - piscineds_network
-
-  pgadmin:
-    image: dpage/pgadmin4:latest
-    container_name: piscineds_pgadmin
-    env_file:
-      - .env
-    ports:
-      - "8080:80"
-    volumes:
-      - pgadmin_data:/var/lib/pgadmin
-    depends_on:
-      - postgres
-    restart: unless-stopped
-    networks:
-      - piscineds_network
+      - piscine_datascience_network
 
 volumes:
   postgres_data:
-  pgadmin_data:
+    
 networks:
-  piscineds_network:
+  piscine_datascience_network:
+    name: piscine_datascience_network
     driver: bridge
+    external: true

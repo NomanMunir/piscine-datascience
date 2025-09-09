@@ -1,19 +1,6 @@
 services:
-  postgres:
-    image: postgres:15
-    container_name: piscineds_postgres
-    env_file:
-      - .env
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    restart: unless-stopped
-    networks:
-      - piscineds_network
-
   pgadmin:
-    image: dpage/pgadmin4:latest
+    image: dpage/pgadmin4:9.8.0
     container_name: piscineds_pgadmin
     env_file:
       - .env
@@ -21,15 +8,20 @@ services:
       - "8080:80"
     volumes:
       - pgadmin_data:/var/lib/pgadmin
-    depends_on:
-      - postgres
+      - ./conf/servers.json:/pgadmin4/servers.json:ro
+      - ./conf/pgpass:/pgadmin4/pgpass:ro
+    environment:
+      - PGADMIN_CONFIG_SERVER_MODE=False
+      - PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED=False
     restart: unless-stopped
     networks:
-      - piscineds_network
+      - piscine_datascience_network
 
 volumes:
-  postgres_data:
   pgadmin_data:
+    
 networks:
-  piscineds_network:
+  piscine_datascience_network:
+    name: piscine_datascience_network
     driver: bridge
+    external: false
