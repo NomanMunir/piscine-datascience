@@ -326,6 +326,7 @@ $RECYCLE.BIN/
 !data/subject/
 !module_*/data/
 !subjects/
+data
 
 # Keep docker-compose files (they're needed)
 !docker-compose.yml
