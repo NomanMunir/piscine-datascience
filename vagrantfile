@@ -1,378 +1,131 @@
 # -*- mode: ruby -*-
 # vi: set ft=ruby :
 
-# Vagrantfile for Piscine Data Science
-# This VM provides DUAL APPROACH flexibility:
-# 1. NATIVE INSTALLATION: All tools installed directly on VM
-# 2. DOCKER CONTAINERS: Use containerized services
-# 
-# You can choose either approach or mix both as needed!
-# 
-# Includes:
-# - Docker & Docker Compose (for containerized approach)
-# - PostgreSQL (both native + Docker ready)
-# - Python with data science libraries (native)
-# - Grafana (both native + Docker ready)
-# - Git and development tools (native)
-
 Vagrant.configure("2") do |config|
-  # Base box - Debian 12 (Bookworm) - stable and reliable
   config.vm.box = "debian/bookworm64"
   config.vm.box_version = ">= 12.0.0"
 
-  # VM Configuration
-  config.vm.hostname = "piscine-datascience"
+  config.vm.hostname = "piscine-ds"
   
-  # Network configuration
-  config.vm.network "private_network", ip: "192.168.56.10"
+  config.vm.network "private_network", ip: "192.168.56.10"  
   
-  # Port forwarding for common services
-  config.vm.network "forwarded_port", guest: 5432, host: 5432    # PostgreSQL
-  config.vm.network "forwarded_port", guest: 3000, host: 3000    # Grafana
-  config.vm.network "forwarded_port", guest: 8080, host: 8080    # General web services
-  config.vm.network "forwarded_port", guest: 8888, host: 8888    # Jupyter Notebook
-  config.vm.network "forwarded_port", guest: 9000, host: 9000    # Additional services
+  config.vm.network "forwarded_port", guest: 4000, host: 5432    # PostgreSQL
+  config.vm.network "forwarded_port", guest: 4001, host: 3000    # Grafana
+  config.vm.network "forwarded_port", guest: 4002, host: 8080    # Web services
 
-  # VM Provider configuration (VirtualBox)
   config.vm.provider "virtualbox" do |vb|
-    vb.name = "piscine-datascience-vm"
-    vb.memory = "6144"  # 6GB RAM (increased for dual approach)
-    vb.cpus = 4         # 4 CPU cores (increased for better performance)
-    
-    # Enable virtualization features for Docker
-    vb.customize ["modifyvm", :id, "--nested-hw-virt", "on"]
+    vb.name = "piscine-ds-vm"
+    vb.memory = "4096"  # 4GB RAM - sufficient for Docker
+    vb.cpus = 4         # 4 CPU cores
+
     vb.customize ["modifyvm", :id, "--natdnshostresolver1", "on"]
-    vb.customize ["modifyvm", :id, "--natdnsproxy1", "on"]
   end
 
-  # Synced folder - sync your project directory
   config.vm.synced_folder ".", "/home/vagrant/piscine-datascience", 
     owner: "vagrant", group: "vagrant"
 
-  # Provisioning script
   config.vm.provision "shell", inline: <<-SHELL
-    # Update system
     echo "=========================================="
-    echo "🚀 Setting up Piscine Data Science VM"
-    echo "   DUAL APPROACH: Native + Docker"
-    echo "   OS: Debian 12 (Bookworm)"
+    echo "Upgrading packages in existing VM"
     echo "=========================================="
-    
-    echo "📦 Updating system packages..."
     apt-get update
     apt-get upgrade -y
+    SHELL
 
-    # Install essential packages
-    echo "🔧 Installing essential packages..."
-    apt-get install -y curl wget git vim nano htop tree unzip build-essential \
-      software-properties-common apt-transport-https ca-certificates \
-      gnupg lsb-release
+  config.vm.provision "shell", inline: <<-SHELL
+    echo "=========================================="
+    echo "Step 2: Installing Docker and Docker Compose"
+    echo "=========================================="
+    
+    # Install required packages
+    apt-get install -y \
+      ca-certificates \
+      curl \
+      gnupg \
+      lsb-release
 
-    # ==========================================
-    # DOCKER SETUP (for containerized approach)
-    # ==========================================
-    echo "🐳 Installing Docker & Docker Compose..."
-    curl -fsSL https://get.docker.com -o get-docker.sh
-    sh get-docker.sh
+    # Add Docker's official GPG key
+    mkdir -p /etc/apt/keyrings
+    curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+
+    # Set up the repository
+    echo \
+      "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/debian \
+      $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+    # Update package index
+    apt-get update
+
+    # Install Docker Engine
+    apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+
+    # Add vagrant user to docker group
     usermod -aG docker vagrant
+
+    # Enable and start Docker service
     systemctl enable docker
     systemctl start docker
 
-    # Install Docker Compose
-    curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-    chmod +x /usr/local/bin/docker-compose
+    echo "Docker installation completed!"
+    echo "Docker version: $(docker --version)"
+    echo "Docker Compose version: $(docker compose version)"
+    SHELL
 
-    # ==========================================
-    # NATIVE INSTALLATIONS (for direct approach)
-    # ==========================================
+  # Piscine Data Science Tools
+  config.vm.provision "shell", inline: <<-SHELL
+    echo "=========================================="
+    echo "Step 3: Installing Piscine Data Science Tools"
+    echo "=========================================="
     
-    # Install PostgreSQL (native option)
-    echo "🗄️  Installing PostgreSQL (native)..."
-    apt-get install -y postgresql postgresql-contrib postgresql-client
-    systemctl enable postgresql
-    
-    # Configure PostgreSQL
-    sudo -u postgres createuser --createdb --login --pwprompt vagrant || true
-    sudo -u postgres createdb vagrant || true
+    # Install PostgreSQL client (for connecting to containers)
+    apt-get install -y postgresql-client
 
-    # Install Python and data science stack (native)
-    echo "🐍 Installing Python and data science tools..."
-    apt-get install -y python3 python3-pip python3-venv python3-dev
-    
-    # Install common Python data science libraries
-    pip3 install --upgrade pip
-    pip3 install pandas numpy matplotlib seaborn jupyter plotly scipy scikit-learn
-    pip3 install psycopg2-binary sqlalchemy requests beautifulsoup4
-    pip3 install streamlit dash flask fastapi uvicorn
+    # Install essential development tools
+    apt-get install -y \
+      git \
+      vim \
+      nano \
+      htop \
+      tree \
+      wget \
+      unzip \
+      jq \
+      zstd
 
-    # Install Grafana (native option)
-    echo "📊 Installing Grafana (native)..."
-    curl -fsSL https://packages.grafana.com/gpg.key | gpg --dearmor -o /usr/share/keyrings/grafana-archive-keyring.gpg
-    echo "deb [signed-by=/usr/share/keyrings/grafana-archive-keyring.gpg] https://packages.grafana.com/oss/deb stable main" | tee /etc/apt/sources.list.d/grafana.list
-    apt-get update
-    apt-get install -y grafana
-    systemctl enable grafana-server
-
-    # Install Node.js (for web-based tools)
-    echo "🟢 Installing Node.js..."
-    curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor -o /usr/share/keyrings/nodesource.gpg
-    echo "deb [signed-by=/usr/share/keyrings/nodesource.gpg] https://deb.nodesource.com/node_18.x nodistro main" | tee /etc/apt/sources.list.d/nodesource.list
-    apt-get update
-    apt-get install -y nodejs
-
-    # Install additional useful tools
-    echo "🛠️  Installing additional tools..."
-    apt-get install -y redis-server nginx
-    
-    # pgAdmin for PostgreSQL management
-    pip3 install pgadmin4
-
-    # ==========================================
-    # ENVIRONMENT SETUP
-    # ==========================================
-    echo "⚙️  Setting up environment..."
-    
-    # Add comprehensive aliases
+    # Create useful aliases for vagrant user
     cat >> /home/vagrant/.bashrc << 'EOF'
 
-# ==========================================
-# PISCINE DATA SCIENCE ENVIRONMENT
-# ==========================================
-
-# Basic aliases
-alias ll='ls -la'
+# Piscine Data Science Aliases
+alias cdp='cd /home/vagrant/piscine-datascience'
+alias ll='ls -alF'
 alias la='ls -A'
 alias l='ls -CF'
-alias ..='cd ..'
-alias ...='cd ../..'
-
-# ==========================================
-# DOCKER APPROACH ALIASES
-# ==========================================
 alias dps='docker ps'
-alias dpa='docker ps -a'
-alias di='docker images'
-alias dc='docker-compose'
-alias dcu='docker-compose up'
-alias dcd='docker-compose down'
-alias dcb='docker-compose build'
-alias dcr='docker-compose restart'
-alias dcl='docker-compose logs'
+alias dcu='docker compose up'
+alias dcd='docker compose down'
+alias dcb='docker compose build'
+alias dcl='docker compose logs'
+alias psql-local='psql -h localhost -p 5432 -U postgres'
 
-# Quick Docker commands
-alias dstop='docker stop $(docker ps -q)'
-alias drm='docker rm $(docker ps -a -q)'
-alias drmi='docker rmi $(docker images -q)'
-alias dclean='docker system prune -f'
-
-# ==========================================
-# NATIVE APPROACH ALIASES
-# ==========================================
-# PostgreSQL native
-alias pgstart='sudo systemctl start postgresql'
-alias pgstop='sudo systemctl stop postgresql'
-alias pgstatus='sudo systemctl status postgresql'
-alias psql='sudo -u postgres psql'
-
-# Grafana native
-alias grafana-start='sudo systemctl start grafana-server'
-alias grafana-stop='sudo systemctl stop grafana-server'
-alias grafana-status='sudo systemctl status grafana-server'
-
-# Python tools
-alias py='python3'
-alias pip='pip3'
-alias jupyter-start='jupyter notebook --ip=0.0.0.0 --port=8888 --no-browser --allow-root'
-alias venv='python3 -m venv'
-
-# ==========================================
-# PROJECT NAVIGATION
-# ==========================================
-alias cdp='cd /home/vagrant/piscine-datascience'
-alias cdm0='cd /home/vagrant/piscine-datascience/module_00'
-alias cdm1='cd /home/vagrant/piscine-datascience/module_01'
-
-# ==========================================
-# GIT ALIASES
-# ==========================================
-alias gs='git status'
-alias ga='git add'
-alias gc='git commit'
-alias gp='git push'
-alias gl='git log --oneline'
-alias gb='git branch'
-alias gco='git checkout'
-
-# ==========================================
-# UTILITY FUNCTIONS
-# ==========================================
-# Quick service status check
-services_status() {
-    echo "==========================================="
-    echo "🔍 SERVICE STATUS CHECK"
-    echo "==========================================="
-    echo "🐳 Docker: $(systemctl is-active docker)"
-    echo "🗄️  PostgreSQL: $(systemctl is-active postgresql)"
-    echo "📊 Grafana: $(systemctl is-active grafana-server)"
-    echo "🔴 Redis: $(systemctl is-active redis-server)"
-    echo "🌐 Nginx: $(systemctl is-active nginx)"
-    echo "==========================================="
-}
-
-# Quick setup for module work
-setup_module() {
-    echo "🚀 Setting up for module work..."
-    echo "Starting essential services..."
-    sudo systemctl start postgresql
-    sudo systemctl start grafana-server
-    sudo systemctl start redis-server
-    docker --version
-    echo "✅ Ready for both native and Docker approaches!"
-}
-
-# Show available approaches
-show_approaches() {
-    echo "==========================================="
-    echo "📋 AVAILABLE APPROACHES"
-    echo "==========================================="
-    echo "🐳 DOCKER APPROACH:"
-    echo "   - Use docker-compose files in ex folders"
-    echo "   - Commands: dcu, dcd, dcb, dcl"
-    echo "   - Isolated containers for each service"
-    echo ""
-    echo "🖥️  NATIVE APPROACH:"
-    echo "   - Use services installed on VM"
-    echo "   - PostgreSQL: pgstart, psql"
-    echo "   - Grafana: grafana-start (http://192.168.56.10:3000)"
-    echo "   - Python: jupyter-start, py script.py"
-    echo ""
-    echo "🔧 MIXED APPROACH:"
-    echo "   - Use Docker for some services"
-    echo "   - Use native for others"
-    echo "   - Maximum flexibility!"
-    echo "==========================================="
-}
-
+# Navigate to project on login
+cd /home/vagrant/piscine-datascience
 EOF
 
-    # Create useful directories
-    mkdir -p /home/vagrant/workspace
-    mkdir -p /home/vagrant/logs
-    mkdir -p /home/vagrant/data
-    mkdir -p /home/vagrant/notebooks
-    
-    # Create a helpful startup script
-    cat > /home/vagrant/piscine-helper.sh << 'EOF'
-#!/bin/bash
-echo "==========================================="
-echo "🎓 PISCINE DATA SCIENCE HELPER"
-echo "==========================================="
-echo "Choose your approach:"
-echo "1. Docker approach (recommended for exercises)"
-echo "2. Native approach (direct VM installation)"
-echo "3. Show service status"
-echo "4. Start all native services"
-echo "5. Show helpful commands"
-echo ""
-read -p "Enter your choice (1-5): " choice
-
-case $choice in
-    1)
-        echo "🐳 Docker approach selected"
-        echo "Navigate to any ex folder and run:"
-        echo "   cd /home/vagrant/piscine-datascience/module_00/ex00"
-        echo "   docker-compose up"
-        ;;
-    2)
-        echo "🖥️  Native approach selected"
-        echo "Starting services..."
-        sudo systemctl start postgresql grafana-server redis-server
-        echo "Services started! Access:"
-        echo "   PostgreSQL: psql -U vagrant"
-        echo "   Grafana: http://192.168.56.10:3000"
-        echo "   Jupyter: jupyter-start"
-        ;;
-    3)
-        services_status
-        ;;
-    4)
-        setup_module
-        ;;
-    5)
-        show_approaches
-        ;;
-    *)
-        echo "Invalid choice"
-        ;;
-esac
-EOF
-    chmod +x /home/vagrant/piscine-helper.sh
-    
-    # Set proper ownership
-    chown -R vagrant:vagrant /home/vagrant
-
-    # Clean up
-    apt-get autoremove -y
-    apt-get autoclean
-
-    echo "=============================================="
-    echo "✅ PISCINE DATA SCIENCE VM SETUP COMPLETE!"
-    echo "=============================================="
-    echo "🐧 OS: Debian 12 (Bookworm)"
-    echo "🌐 VM IP: 192.168.56.10"
+    echo "=========================================="
+    echo "Piscine Data Science VM Setup Complete!"
+    echo "=========================================="
+    echo "Available tools:"
+    echo "- Docker & Docker Compose"
+    echo "- PostgreSQL client"
+    echo "- Git, vim, nano, htop, tree"
+    echo "- Python 3 with pip"
     echo ""
-    echo "📊 AVAILABLE SERVICES:"
-    echo "   PostgreSQL: 5432 (native + Docker ready)"
-    echo "   Grafana: 3000 (native + Docker ready)"
-    echo "   Jupyter: 8888"
-    echo "   Web services: 8080, 9000"
+    echo "Useful aliases:"
+    echo "- cdp: Navigate to project directory"
+    echo "- dcu/dcd: Docker compose up/down"
+    echo "- psql-local: Connect to local PostgreSQL"
     echo ""
-    echo "🚀 TWO APPROACHES AVAILABLE:"
-    echo "   1. 🐳 DOCKER: Use docker-compose in ex folders"
-    echo "   2. 🖥️  NATIVE: Use installed services directly"
-    echo ""
-    echo "🎯 QUICK START:"
-    echo "   vagrant ssh"
-    echo "   ./piscine-helper.sh"
-    echo ""
-    echo "🔧 USEFUL COMMANDS:"
-    echo "   services_status    - Check all services"
-    echo "   setup_module      - Start native services"
-    echo "   show_approaches   - Show both approaches"
-    echo "=============================================="
+    echo "VM IP: 192.168.56.10"
+    echo "Ready for Piscine Data Science exercises!"
   SHELL
-
-  # Message to display after provisioning
-  config.vm.post_up_message = <<-MSG
-    ==========================================
-    🎓 PISCINE DATA SCIENCE VM IS READY!
-    ==========================================
-    
-    � OS: Debian 12 (Bookworm)
-    �🚀 DUAL APPROACH SETUP COMPLETE!
-    
-    Connect to your VM:
-      vagrant ssh
-    
-    Choose your approach:
-      ./piscine-helper.sh
-    
-    📁 Your project is mounted at:
-      /home/vagrant/piscine-datascience
-    
-    🐳 DOCKER APPROACH:
-      cdp && cd module_00/ex00
-      docker-compose up
-    
-    🖥️  NATIVE APPROACH:
-      setup_module
-      psql -U vagrant
-      grafana-start
-    
-    🔧 Quick commands:
-      services_status   - Check all services
-      show_approaches   - Show both methods
-    
-    ==========================================
-  MSG
 end
