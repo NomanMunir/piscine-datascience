@@ -1,88 +1,36 @@
--- Exercise 02: Remove duplicates from customers table (Simple & Reliable)
--- Run this AFTER ex01_customers_table.sql
+-- Exercise 02: Remove duplicates - SIMPLEST VERSION
 
--- Check if customers table exists
-DO $$
-BEGIN
-    IF NOT EXISTS (SELECT FROM pg_tables WHERE schemaname = 'public' AND tablename = 'customers') THEN
-        RAISE EXCEPTION 'customers table not found! Please run ex01_customers_table.sql first';
-    END IF;
-    RAISE NOTICE 'customers table found, proceeding with duplicate removal';
-END;
-$$;
+-- Step 1: Add a unique constraint (this will fail if duplicates exist)
+-- ALTER TABLE customers ADD CONSTRAINT customers_unique 
+-- UNIQUE (user_id, product_id, event_type, price, DATE_TRUNC('second', event_time));
 
--- Show current row count
-SELECT COUNT(*) as rows_before_cleanup FROM customers;
-
--- Create backup table
-DROP TABLE IF EXISTS customers_backup;
-CREATE TABLE customers_backup AS SELECT * FROM customers;
-
--- Notify backup created
-DO $$
-BEGIN
-    RAISE NOTICE 'Backup created: customers_backup';
-END;
-$$;
-
--- Find duplicates (same user_id, product_id, event_type, price within same second)
+-- Step 2: If constraint fails, use this manual approach
+-- First, let's see how many duplicates we actually have:
 SELECT 
-    COUNT(*) as total_rows,
-    COUNT(DISTINCT (user_id, product_id, event_type, price, date_trunc('second', event_time))) as unique_combinations,
-    COUNT(*) - COUNT(DISTINCT (user_id, product_id, event_type, price, date_trunc('second', event_time))) as duplicates_found
-FROM customers;
+    user_id, product_id, event_type, price, DATE_TRUNC('second', event_time) as event_second,
+    COUNT(*) as duplicate_count
+FROM customers 
+GROUP BY user_id, product_id, event_type, price, DATE_TRUNC('second', event_time)
+HAVING COUNT(*) > 1
+ORDER BY duplicate_count DESC
+LIMIT 10;
 
--- Remove duplicates - keep the earliest occurrence
-DELETE FROM customers 
-WHERE ctid NOT IN (
-    SELECT MIN(ctid)
-    FROM customers
-    GROUP BY user_id, product_id, event_type, price, date_trunc('second', event_time)
-);
-
--- Show results
-SELECT 
-    (SELECT COUNT(*) FROM customers_backup) as original_rows,
-    COUNT(*) as cleaned_rows,
-    (SELECT COUNT(*) FROM customers_backup) - COUNT(*) as duplicates_removed
-FROM customers;
-
--- Verify no duplicates remain
-WITH duplicate_check AS (
-    SELECT 
-        user_id, product_id, event_type, price, date_trunc('second', event_time) as event_second,
-        COUNT(*) as count_per_group
-    FROM customers 
-    GROUP BY user_id, product_id, event_type, price, date_trunc('second', event_time)
-    HAVING COUNT(*) > 1
-)
-SELECT 
-    CASE WHEN COUNT(*) = 0 
-         THEN 'SUCCESS: No duplicates remaining' 
-         ELSE 'WARNING: ' || COUNT(*) || ' duplicate groups still exist' 
-    END as verification_result
-FROM duplicate_check;
-
--- Create unique index to prevent future duplicates
-DROP INDEX IF EXISTS idx_customers_no_duplicates;
-CREATE UNIQUE INDEX idx_customers_no_duplicates 
-ON customers (user_id, product_id, event_type, price, date_trunc('second', event_time));
-
--- Show sample of final data
-SELECT 
+-- Step 3: If there are many duplicates, create a new clean table
+DROP TABLE IF EXISTS customers_new;
+CREATE TABLE customers_new AS 
+SELECT DISTINCT 
     event_time,
-    event_type, 
+    event_type,
     product_id,
     price,
     user_id,
+    user_session,
     source_table
-FROM customers 
-ORDER BY event_time 
-LIMIT 5;
+FROM customers;
 
--- Final notification
-DO $$
-BEGIN
-    RAISE NOTICE 'Exercise 02 completed successfully!';
-END;
-$$;
+-- Step 4: Replace the table
+DROP TABLE customers;
+ALTER TABLE customers_new RENAME TO customers;
+
+-- Final check
+SELECT COUNT(*) as final_count FROM customers;
