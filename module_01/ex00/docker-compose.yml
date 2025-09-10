@@ -10,6 +10,7 @@ services:
       - postgres_data:/var/lib/postgresql/data
       - ../../data/subject/subject:/data
       - ./scripts:/scripts
+    entrypoint: ["/scripts/entrypoint.sh"]
     restart: unless-stopped
     networks:
       - piscine_datascience_network
