@@ -5,12 +5,12 @@
 
 -- Create the table with appropriate data types
 CREATE TABLE IF NOT EXISTS data_2022_oct (
-    event_time TIMESTAMP WITH TIME ZONE NOT NULL,  -- DateTime as first column (mandatory)
-    event_type VARCHAR(50) NOT NULL,               -- Text data type
-    product_id BIGINT NOT NULL,                     -- Large integer
-    price NUMERIC(10,2) NOT NULL,                   -- Decimal with precision
-    user_id BIGINT NOT NULL,                        -- Large integer 
-    user_session UUID                               -- UUID data type (nullable for empty values)
+    event_time TIMESTAMP WITH TIME ZONE NOT NULL,  -- 1. TIMESTAMP WITH TIME ZONE (DateTime - first column ✅)
+    event_type VARCHAR(50) NOT NULL,               -- 2. VARCHAR (Text data type)
+    product_id BIGINT NOT NULL,                     -- 3. BIGINT (Large integer)
+    price NUMERIC(10,2) NOT NULL,                   -- 4. NUMERIC (Decimal with precision)
+    user_id INTEGER NOT NULL,                       -- 5. INTEGER (Changed from BIGINT!)
+    user_session UUID                               -- 6. UUID (UUID data type)
 );
 
 -- Add indexes for better performance
@@ -23,9 +23,6 @@ COPY data_2022_oct(event_time, event_type, product_id, price, user_id, user_sess
 FROM '/data/customer/data_2022_oct.csv'
 DELIMITER ','
 CSV HEADER;
-
--- Display table structure
-\d data_2022_oct;
 
 -- Verify the data was loaded
 SELECT COUNT(*) as total_rows FROM data_2022_oct;

@@ -1,7 +1,3 @@
--- Exercise 03: Truly Automatic table creation for all CSV files
--- This script dynamically creates tables for ANY CSV files found in the customer folder
--- No need to manually list filenames!
-
 -- Function to create table and load data for a specific CSV file
 CREATE OR REPLACE FUNCTION create_table_from_csv(table_name TEXT, csv_file_path TEXT)
 RETURNS TEXT AS $$
@@ -9,16 +5,15 @@ DECLARE
     sql_command TEXT;
     result_message TEXT;
 BEGIN
-    -- Create the table with the same structure as our previous table
-    -- Using the same 6 data types as required
+    -- Create the table with 6 DIFFERENT data types
     sql_command := format('
         CREATE TABLE IF NOT EXISTS %I (
-            event_time TIMESTAMP WITH TIME ZONE NOT NULL,  -- DateTime as first column (mandatory)
-            event_type VARCHAR(50) NOT NULL,               -- Text data type
-            product_id BIGINT NOT NULL,                     -- Large integer
-            price NUMERIC(10,2) NOT NULL,                   -- Decimal with precision
-            user_id BIGINT NOT NULL,                        -- Large integer 
-            user_session UUID                               -- UUID data type (nullable for empty values)
+            event_time TIMESTAMP WITH TIME ZONE NOT NULL,  -- 1. TIMESTAMP WITH TIME ZONE
+            event_type VARCHAR(50) NOT NULL,               -- 2. VARCHAR
+            product_id BIGINT NOT NULL,                     -- 3. BIGINT
+            price NUMERIC(10,2) NOT NULL,                   -- 4. NUMERIC
+            user_id INTEGER NOT NULL,                       -- 5. INTEGER (changed from BIGINT!)
+            user_session UUID                               -- 6. UUID
         )', table_name);
     
     EXECUTE sql_command;
@@ -46,9 +41,6 @@ EXCEPTION WHEN OTHERS THEN
     RETURN format('❌ Error creating table %I: %s', table_name, SQLERRM);
 END;
 $$ LANGUAGE plpgsql;
-
--- This function will be called by the shell script with dynamic file list
--- No hardcoded filenames here!
 
 -- Display summary of all created tables
 SELECT 
