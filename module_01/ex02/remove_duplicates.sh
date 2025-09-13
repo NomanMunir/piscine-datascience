@@ -16,26 +16,58 @@ if [ "$original_count" -eq 0 ]; then
     exit 0
 fi
 
-# Remove duplicates with time-based deduplication
+# Remove duplicates with time-based deduplication (optimized for large datasets)
 docker exec -i "$POSTGRES_CONTAINER" psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" << 'EOF'
 DO $$
 BEGIN
-    RAISE NOTICE 'Removing duplicate rows and events within 1 second interval...';
+    RAISE NOTICE 'Starting optimized duplicate removal for large dataset...';
     
-    -- Remove exact duplicate rows using ctid
+    -- Create index for performance boost
+    RAISE NOTICE 'Creating temporary index for performance...';
+    CREATE INDEX IF NOT EXISTS idx_customers_dedup_temp 
+    ON customers (user_id, product_id, event_type, price, user_session, event_time);
+    
+    -- Stage 1: Remove exact duplicates using efficient window function
+    RAISE NOTICE 'Stage 1: Removing exact duplicates...';
+    DELETE FROM customers 
+    WHERE ctid NOT IN (
+        SELECT ctid FROM (
+            SELECT ctid,
+                   ROW_NUMBER() OVER (
+                       PARTITION BY event_time, event_type, product_id, price, user_id, user_session 
+                       ORDER BY ctid
+                   ) as rn
+            FROM customers
+        ) ranked 
+        WHERE rn = 1
+    );
+    
+    RAISE NOTICE 'Stage 1 completed: Exact duplicates removed';
+    
+    -- Stage 2: Remove events within 1-second interval (same user, product, type)
+    RAISE NOTICE 'Stage 2: Removing events within 1-second interval...';
     DELETE FROM customers a
-    WHERE a.ctid <> (SELECT min(b.ctid)
-                     FROM customers b
-                     WHERE a.event_time = b.event_time AND
-                           a.event_type = b.event_type AND
-                           a.product_id = b.product_id AND
-                           a.price = b.price AND
-                           a.user_id = b.user_id AND
-                           a.user_session = b.user_session);
+    WHERE EXISTS (
+        SELECT 1 FROM customers b
+        WHERE a.user_id = b.user_id 
+          AND a.product_id = b.product_id 
+          AND a.event_type = b.event_type 
+          AND a.price = b.price 
+          AND a.user_session = b.user_session
+          AND ABS(EXTRACT(EPOCH FROM (a.event_time - b.event_time))) <= 1
+          AND a.event_time > b.event_time  -- Keep the earlier event
+          AND a.ctid > b.ctid  -- Use ctid as tiebreaker
+    );
     
-    RAISE NOTICE 'Exact duplicates removed successfully';
+    RAISE NOTICE 'Stage 2 completed: 1-second interval duplicates removed';
+    
+    -- Drop temporary index
+    DROP INDEX IF EXISTS idx_customers_dedup_temp;
+    
+    RAISE NOTICE 'All duplicate removal operations completed successfully';
 EXCEPTION
     WHEN OTHERS THEN
+        DROP INDEX IF EXISTS idx_customers_dedup_temp;
         DROP TABLE IF EXISTS customers_temp;
         RAISE;
 END $$;

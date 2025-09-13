@@ -36,6 +36,22 @@ CREATE TABLE IF NOT EXISTS customers (
     user_id INTEGER,
     user_session UUID
 );
+
+-- Create indexes for optimal performance on large datasets
+CREATE INDEX IF NOT EXISTS idx_customers_user_product_time 
+    ON customers (user_id, product_id, event_time);
+
+CREATE INDEX IF NOT EXISTS idx_customers_dedup_columns 
+    ON customers (user_id, product_id, event_type, price, user_session);
+
+CREATE INDEX IF NOT EXISTS idx_customers_event_time 
+    ON customers (event_time);
+
+CREATE INDEX IF NOT EXISTS idx_customers_user_session 
+    ON customers (user_session);
+
+CREATE INDEX IF NOT EXISTS idx_customers_composite_lookup 
+    ON customers (event_type, product_id, user_id);
 "
 
 # Check if table already has data
