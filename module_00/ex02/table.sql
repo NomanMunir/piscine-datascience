@@ -19,16 +19,25 @@ CREATE INDEX IF NOT EXISTS idx_data_2022_oct_event_time ON data_2022_oct(event_t
 CREATE INDEX IF NOT EXISTS idx_data_2022_oct_user_id ON data_2022_oct(user_id);
 CREATE INDEX IF NOT EXISTS idx_data_2022_oct_product_id ON data_2022_oct(product_id);
 
-DO $$ BEGIN
-    RAISE NOTICE 'Loading data from CSV file (this may take a few minutes)...';
-END $$;
-
-COPY data_2022_oct(event_time, event_type, product_id, price, user_id, user_session)
-FROM '/data/data/customer/data_2022_oct.csv'
-WITH CSV HEADER DELIMITER ',';
-
-DO $$ BEGIN
-    RAISE NOTICE 'Data loading completed! Checking row count...';
+-- Check if table already has data before loading
+DO $$ 
+DECLARE
+    row_count INTEGER;
+BEGIN
+    SELECT COUNT(*) INTO row_count FROM data_2022_oct;
+    
+    IF row_count > 0 THEN
+        RAISE NOTICE 'Table data_2022_oct already contains % rows. Skipping data loading.', row_count;
+    ELSE
+        RAISE NOTICE 'Loading data from CSV file (this may take a few minutes)...';
+        
+        -- Load data from CSV file
+        COPY data_2022_oct(event_time, event_type, product_id, price, user_id, user_session)
+        FROM '/data/data/customer/data_2022_oct.csv'
+        WITH CSV HEADER DELIMITER ',';
+        
+        RAISE NOTICE 'Data loading completed! Checking row count...';
+    END IF;
 END $$;
 
 SELECT COUNT(*) as total_rows FROM data_2022_oct;

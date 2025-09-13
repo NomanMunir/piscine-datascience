@@ -5,6 +5,9 @@ DECLARE
     sql_command TEXT;
     result_message TEXT;
 BEGIN
+    -- Progress indicator: Creating table
+    RAISE NOTICE 'Creating table structure for %...', table_name;
+    
     -- Create the table with 6 DIFFERENT data types
     sql_command := format('
         CREATE TABLE IF NOT EXISTS %I (
@@ -18,10 +21,24 @@ BEGIN
     
     EXECUTE sql_command;
     
+    -- Check if table already has data
+    EXECUTE format('SELECT COUNT(*) FROM %I', table_name) INTO result_message;
+    
+    IF result_message::integer > 0 THEN
+        RAISE NOTICE 'Table % already contains % rows. Skipping data loading.', table_name, result_message;
+        RETURN format('Table %I already exists with %s rows - skipped loading', table_name, result_message);
+    END IF;
+    
+    -- Progress indicator: Creating indexes
+    RAISE NOTICE 'Creating indexes for table %...', table_name;
+    
     -- Add indexes for better performance
     EXECUTE format('CREATE INDEX IF NOT EXISTS idx_%I_event_time ON %I(event_time)', table_name, table_name);
     EXECUTE format('CREATE INDEX IF NOT EXISTS idx_%I_user_id ON %I(user_id)', table_name, table_name);
     EXECUTE format('CREATE INDEX IF NOT EXISTS idx_%I_product_id ON %I(product_id)', table_name, table_name);
+    
+    -- Progress indicator: Loading data
+    RAISE NOTICE 'Loading data from CSV file % (this may take a few minutes)...', csv_file_path;
     
     -- Load data from CSV file
     sql_command := format('
@@ -31,6 +48,9 @@ BEGIN
         CSV HEADER', table_name, csv_file_path);
     
     EXECUTE sql_command;
+    
+    -- Progress indicator: Verifying data
+    RAISE NOTICE 'Data loading completed for %. Checking row count...', table_name;
     
     -- Get row count for verification
     EXECUTE format('SELECT COUNT(*) FROM %I', table_name) INTO result_message;
