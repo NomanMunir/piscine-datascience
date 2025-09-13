@@ -1,103 +1,118 @@
 #!/bin/bash
 
-# Load environment variables from .env file if it exists
 if [ -f "../.env" ]; then
     source ../.env
 fi
 
-# Function to insert data from a specific table into customers
-insert_into_customers() {
-    local source_table=$1
-    echo "Inserting data from $source_table..."
+check_existing_data() {
+    local existing_rows=$(docker exec "$POSTGRES_CONTAINER" psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -t -c "SELECT COUNT(*) FROM customers;" 2>/dev/null | tr -d ' ')
     
-    docker exec -i "$POSTGRES_CONTAINER" psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "
-        INSERT INTO customers (event_time, event_type, product_id, price, user_id, user_session)
-        SELECT event_time, event_type, product_id, price, user_id, user_session
-        FROM $source_table;
-    "
-    
-    if [ $? -eq 0 ]; then
-        echo "✓ Successfully inserted data from $source_table"
+    if [ "$existing_rows" -gt 0 ] 2>/dev/null; then
+        echo "Customers table already contains $existing_rows rows. Skipping data load."
+        return 0
     else
-        echo "✗ Failed to insert data from $source_table"
+        return 1
+    fi
+}
+
+create_indexes() {
+    echo "Creating performance indexes..."
+    
+    docker exec -i "$POSTGRES_CONTAINER" psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" << 'EOF'
+CREATE INDEX IF NOT EXISTS idx_customers_user_product_time ON customers (user_id, product_id, event_time);
+CREATE INDEX IF NOT EXISTS idx_customers_dedup_columns ON customers (user_id, product_id, event_type, price, user_session);
+CREATE INDEX IF NOT EXISTS idx_customers_event_time ON customers (event_time);
+CREATE INDEX IF NOT EXISTS idx_customers_user_session ON customers (user_session);
+CREATE INDEX IF NOT EXISTS idx_customers_composite_lookup ON customers (event_type, product_id, user_id);
+EOF
+
+    if [ $? -ne 0 ]; then
+        echo "✗ Failed to create indexes"
+        return 1
+    fi
+    
+    echo "✓ Successfully created all indexes"
+    return 0
+}
+
+find_source_tables() {
+    local tables=($(docker exec "$POSTGRES_CONTAINER" psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -t -c "
+        SELECT tablename 
+        FROM pg_tables 
+        WHERE schemaname = 'public' AND tablename LIKE 'data_202%'
+        ORDER BY tablename;
+    " | tr -d ' '))
+    
+    if [ ${#tables[@]} -eq 0 ]; then
+        echo "✗ No data_202* tables found!" >&2
+        return 1
+    fi
+    
+    echo "Found ${#tables[@]} tables: ${tables[*]}" >&2
+    echo "${tables[@]}"
+    return 0
+}
+
+create_customers_from_union() {
+    local tables=("$@")  # Receive all arguments as array
+    
+    if [ ${#tables[@]} -eq 0 ]; then
+        echo "✗ No tables to union"
+        return 1
+    fi
+    
+    echo "Creating customers table from ${#tables[@]} tables using UNION ALL..."
+    
+    local union_query=""
+    for i in "${!tables[@]}"; do
+        if [ $i -eq 0 ]; then
+            union_query="SELECT event_time, event_type, product_id, price, user_id, user_session FROM ${tables[$i]}"
+        else
+            union_query="$union_query UNION ALL SELECT event_time, event_type, product_id, price, user_id, user_session FROM ${tables[$i]}"
+        fi
+    done
+    
+    docker exec -i "$POSTGRES_CONTAINER" psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" << EOF
+CREATE TABLE customers AS
+$union_query;
+EOF
+
+    if [ $? -eq 0 ]; then
+        echo "✓ Successfully created customers table from all tables"
+        return 0
+    else
+        echo "✗ Failed to create customers table"
         return 1
     fi
 }
 
 echo "Creating customers table from all data_202* tables..."
 
-# Create customers table structure
-docker exec -i "$POSTGRES_CONTAINER" psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "
-CREATE TABLE IF NOT EXISTS customers (
-    event_time TIMESTAMP WITH TIME ZONE,
-    event_type VARCHAR(50),
-    product_id BIGINT,
-    price NUMERIC(10,2),
-    user_id INTEGER,
-    user_session UUID
-);
-
--- Create indexes for optimal performance on large datasets
-CREATE INDEX IF NOT EXISTS idx_customers_user_product_time 
-    ON customers (user_id, product_id, event_time);
-
-CREATE INDEX IF NOT EXISTS idx_customers_dedup_columns 
-    ON customers (user_id, product_id, event_type, price, user_session);
-
-CREATE INDEX IF NOT EXISTS idx_customers_event_time 
-    ON customers (event_time);
-
-CREATE INDEX IF NOT EXISTS idx_customers_user_session 
-    ON customers (user_session);
-
-CREATE INDEX IF NOT EXISTS idx_customers_composite_lookup 
-    ON customers (event_type, product_id, user_id);
-"
-
-# Check if table already has data
-existing_rows=$(docker exec "$POSTGRES_CONTAINER" psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -t -c "SELECT COUNT(*) FROM customers;" | tr -d ' ')
-
-if [ "$existing_rows" -gt 0 ]; then
-    echo "Customers table already contains $existing_rows rows. Skipping data load."
+if check_existing_data; then
     exit 0
 fi
 
-# Get all data_202* tables and store in array
-echo "Finding all data_202* tables..."
-tables=($(docker exec "$POSTGRES_CONTAINER" psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -t -c "
-    SELECT tablename 
-    FROM pg_tables 
-    WHERE schemaname = 'public' AND tablename LIKE 'data_202%'
-    ORDER BY tablename;
-" | tr -d ' '))
-
-if [ ${#tables[@]} -eq 0 ]; then
-    echo "No data_202* tables found!"
+source_tables=$(find_source_tables)
+if [ $? -ne 0 ]; then
     exit 1
 fi
 
-echo "Found ${#tables[@]} tables to process: ${tables[*]}"
-
-# Loop through each table and insert data
+tables=($source_tables)
 total_tables=${#tables[@]}
-current_table=0
 
-for table in "${tables[@]}"; do
-    current_table=$((current_table + 1))
-    echo "[$current_table/$total_tables] Processing $table..."
-    
-    if insert_into_customers "$table"; then
-        echo "Progress: $current_table/$total_tables tables completed"
-    else
-        echo "Error: Failed to process $table"
-        exit 1
-    fi
-done
+echo "Processing $total_tables tables..."
 
-# Get final count
+if ! create_customers_from_union "${tables[@]}"; then
+    exit 1
+fi
+
+if ! create_indexes; then
+    exit 1
+fi
+
 final_count=$(docker exec "$POSTGRES_CONTAINER" psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -t -c "SELECT COUNT(*) FROM customers;" | tr -d ' ')
 
 echo ""
 echo "✓ Successfully created customers table!"
 echo "✓ Total rows inserted: $final_count"
-echo "✓ Tables processed: ${#tables[@]}"
+echo "✓ Tables processed: $total_tables"
