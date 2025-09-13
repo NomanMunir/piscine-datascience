@@ -49,26 +49,26 @@ PGADMIN_DEFAULT_PASSWORD=admin123
 
 ### Exercise 02 - Table Creation with 6 Data Types
 **Directory:** `ex02/`  
-**Files:** `table.sql`, `table.sh`  
+**Files:** `table.sh`  
 **Objective:** Create `data_2022_oct` table with 6 different PostgreSQL data types  
-**Features:** Duplicate prevention, progress indicators, automatic .env loading  
+**Features:** Function-based script, duplicate prevention, performance indexes  
 **Data Types:** TIMESTAMP WITH TIME ZONE, VARCHAR, BIGINT, NUMERIC, INTEGER, UUID  
-**What you'll learn:** SQL data types, table creation, CSV data loading, error handling
+**What you'll learn:** SQL data types, table creation, CSV data loading, modular scripting
 
 ### Exercise 03 - Automated Table Creation
 **Directory:** `ex03/`  
-**Files:** `automatic_table.sql`, `automatic_table.sh`  
-**Objective:** Create PostgreSQL function to automatically process all CSV files  
-**Features:** Dynamic table creation, batch processing, comprehensive logging  
-**What you'll learn:** PL/pgSQL functions, dynamic SQL, automation, batch processing
+**Files:** `automatic_table.sh`  
+**Objective:** Automatically process all CSV files with function-based approach  
+**Features:** Reusable functions, batch processing, error handling per file  
+**What you'll learn:** Function-based scripting, dynamic processing, code reusability
 
 ### Exercise 04 - Items Table with 3+ Data Types
 **Directory:** `ex04/`  
-**Files:** `items_table.sql`, `items_table.sh`  
-**Objective:** Create `items` table using column names from item.csv  
-**Features:** 3+ data types, exception handling, configurable paths  
+**Files:** `items_table.sh`  
+**Objective:** Create `items` table using function-based approach  
+**Features:** Modular functions, performance indexes, clean code structure  
 **Data Types:** BIGINT, VARCHAR(255), TEXT  
-**What you'll learn:** Schema design, data type selection, exception handling
+**What you'll learn:** Schema design, function modularity, clean coding practices
 
 ## Data Structure
 
@@ -148,14 +148,11 @@ The Docker volume mount `../:/app` creates this structure inside containers:
 ├── ex01/
 │   └── .gitkeep
 ├── ex02/
-│   ├── table.sql          # Single table creation
-│   └── table.sh
+│   └── table.sh           # Function-based table creation
 ├── ex03/
-│   ├── automatic_table.sql # Batch processing function
-│   └── automatic_table.sh
+│   └── automatic_table.sh # Function-based batch processing
 ├── ex04/
-│   ├── items_table.sql    # Items table creation
-│   └── items_table.sh
+│   └── items_table.sh     # Function-based items table
 └── .env                   # Environment configuration
 ```
 
@@ -186,19 +183,25 @@ The Docker volume mount `../:/app` creates this structure inside containers:
 ## Script Features
 
 ### All Scripts Include:
-- ✅ **Environment Configuration**: Automatic .env file loading
-- ✅ **Line Ending Fix**: Automatic Windows to Unix conversion
-- ✅ **Progress Indicators**: Real-time feedback with PostgreSQL RAISE NOTICE
-- ✅ **Duplicate Prevention**: Skip loading if data already exists
-- ✅ **Error Handling**: Comprehensive exception handling
-- ✅ **Configurable Paths**: Use DATA_PATH from .env file
+- ✅ **Function-Based Architecture**: Modular, reusable functions for better code organization
+- ✅ **Environment Configuration**: Automatic .env file loading with DATA_PATH support
+- ✅ **Clean Code**: No comments, clean SQL, simple structure
+- ✅ **Duplicate Prevention**: Smart checks to skip loading if data already exists
+- ✅ **Error Handling**: Proper return codes and clear error messages
+- ✅ **Performance Indexes**: Automatic index creation for better query performance
+
+### Function Structure:
+- **check_existing_data()**: Verify if table already contains data
+- **create_table_structure()**: Create table schema and performance indexes
+- **load_csv_data()**: Load CSV data with proper error handling
+- **process_csv_file()**: Complete file processing (ex03 only)
 
 ### Error Handling Features:
 - Container availability checks
 - SQL execution validation
 - CSV file existence verification
 - Duplicate data detection
-- Automatic rollback on errors
+- Function-level error propagation
 
 ## Key Learning Outcomes
 
@@ -206,11 +209,11 @@ The Docker volume mount `../:/app` creates this structure inside containers:
 2. **Environment Management:** Centralized configuration with .env files
 3. **PostgreSQL Data Types:** Working with 6+ different data types (BIGINT, VARCHAR, TEXT, UUID, TIMESTAMP, NUMERIC, INTEGER)
 4. **Data Loading:** Efficient CSV data loading with COPY commands
-5. **PL/pgSQL Programming:** Dynamic table creation with stored functions
-6. **Error Handling:** Comprehensive exception handling and duplicate prevention
-7. **Automation:** Batch processing and progress tracking
-8. **Shell Scripting:** Environment-aware bash scripts with error checking
-9. **Cross-Platform Development:** Windows line ending handling for WSL compatibility
+5. **Function-Based Scripting:** Modular, reusable bash functions for better code organization
+6. **Performance Optimization:** Strategic index creation for large datasets
+7. **Error Handling:** Function-level error handling with proper return codes
+8. **Code Quality:** Clean, comment-free scripts with clear structure
+9. **Cross-Platform Development:** Environment variable usage for path flexibility
 
 ## Troubleshooting
 
@@ -293,12 +296,12 @@ docker exec -it postgres psql -U nmunir -d piscineds -c "\df create_table_from_c
 
 ## Best Practices Learned
 
-1. Always use appropriate data types for your data
-2. Consider NULL constraints based on your data quality
-3. Use indexes for frequently queried columns
-4. Automate repetitive tasks with scripts
-5. Use Docker volumes for data persistence
-6. Monitor container logs for debugging
+1. **Function-Based Architecture**: Organize code into reusable, single-purpose functions
+2. **Clean Code Principles**: Write clear, comment-free code that's self-documenting
+3. **Performance Optimization**: Create strategic indexes for large datasets
+4. **Error Handling**: Use proper return codes and clear error messages
+5. **Environment Configuration**: Use variables for flexible deployment
+6. **Data Validation**: Always check if data already exists before loading
 
 ---
 
