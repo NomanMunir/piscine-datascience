@@ -3,7 +3,7 @@ CREATE TABLE IF NOT EXISTS items (
     product_id BIGINT,
     category_id BIGINT,
     category_code VARCHAR(255),
-    brand VARCHAR(100)
+    brand TEXT
 );
 
 -- Load data from CSV file with progress notification

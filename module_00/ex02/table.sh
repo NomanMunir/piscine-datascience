@@ -1,15 +1,16 @@
 #!/bin/bash
 
-CONTAINER_NAME=${POSTGRES_CONTAINER:-postgres}
-DB_USER=${POSTGRES_USER:-nmunir}
-DB_NAME=${POSTGRES_DB:-piscineds}
+# Load environment variables from .env file if it exists
+if [ -f "../.env" ]; then
+    source ../.env
+fi
 
 echo "Creating table and loading data for October 2022..."
-echo "Using container: $CONTAINER_NAME, user: $DB_USER, database: $DB_NAME"
+echo "Using container: $POSTGRES_CONTAINER, user: $POSTGRES_USER, database: $POSTGRES_DB"
 echo "This may take a few minutes for large CSV files..."
 
 echo "Executing SQL script..."
-docker exec -i $CONTAINER_NAME psql -U $DB_USER -d $DB_NAME -f /data/module_00/ex02/table.sql
+docker exec -i $POSTGRES_CONTAINER psql -U $POSTGRES_USER -d $POSTGRES_DB -f /data/module_00/ex02/table.sql
 
 if [ $? -eq 0 ]; then
     echo "Table creation and data loading completed successfully."
