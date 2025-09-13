@@ -1,4 +1,0 @@
-# pgPass file for automatic PostgreSQL authentication
-# Format: hostname:port:database:username:password
-postgres:5432:piscineds:nmunir:mysecretpassword
-postgres:5432:*:nmunir:mysecretpassword
