@@ -33,7 +33,7 @@ BEGIN
         
         -- Load data from CSV file
         COPY data_2022_oct(event_time, event_type, product_id, price, user_id, user_session)
-        FROM '/data/data/customer/data_2022_oct.csv'
+        FROM '/app/data/customer/data_2022_oct.csv'
         WITH CSV HEADER DELIMITER ',';
         
         RAISE NOTICE 'Data loading completed! Checking row count...';

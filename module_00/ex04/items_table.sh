@@ -9,7 +9,7 @@ echo "Using container: $POSTGRES_CONTAINER, user: $POSTGRES_USER, database: $POS
 echo "Creating items table..."
 
 # Execute SQL file
-docker exec -i "$POSTGRES_CONTAINER" psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f /data/module_00/ex04/items_table.sql
+docker exec -i "$POSTGRES_CONTAINER" psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f /app/ex04/items_table.sql
 
 if [ $? -ne 0 ]; then
     echo "Error: Failed to create items table."

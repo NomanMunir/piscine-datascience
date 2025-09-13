@@ -10,7 +10,7 @@ echo "Using container: $POSTGRES_CONTAINER, user: $POSTGRES_USER, database: $POS
 echo "This may take a few minutes for large CSV files..."
 
 echo "Executing SQL script..."
-docker exec -i $POSTGRES_CONTAINER psql -U $POSTGRES_USER -d $POSTGRES_DB -f /data/module_00/ex02/table.sql
+docker exec -i $POSTGRES_CONTAINER psql -U $POSTGRES_USER -d $POSTGRES_DB -f /app/ex02/table.sql
 
 if [ $? -eq 0 ]; then
     echo "Table creation and data loading completed successfully."

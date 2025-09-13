@@ -19,7 +19,7 @@ BEGIN
         RAISE NOTICE 'Loading data from item.csv...';
         
         COPY items (product_id, category_id, category_code, brand)
-        FROM '/data/data/item/item.csv'
+        FROM '/app/data/item/item.csv'
         DELIMITER ','
         CSV HEADER;
         

@@ -10,7 +10,7 @@ echo "Using container: $POSTGRES_CONTAINER, user: $POSTGRES_USER, database: $POS
 echo "This may take a few minutes for large CSV files..."
 
 echo "Loading PostgreSQL function..."
-docker exec -i $POSTGRES_CONTAINER psql -U $POSTGRES_USER -d $POSTGRES_DB -f /data/module_00/ex03/automatic_table.sql
+docker exec -i $POSTGRES_CONTAINER psql -U $POSTGRES_USER -d $POSTGRES_DB -f /app/ex03/automatic_table.sql
 
 if [ $? -ne 0 ]; then
     echo "Error: Failed to load PostgreSQL function."
@@ -19,7 +19,7 @@ fi
 
 echo "Scanning for CSV files in customer folder..."
 # Find all CSV files in customer folder
-csv_files=($(docker exec $POSTGRES_CONTAINER find /data/data/customer -name "*.csv" -type f -exec basename {} \;))
+csv_files=($(docker exec $POSTGRES_CONTAINER find $DATA_PATH/customer -name "*.csv" -type f -exec basename {} \;))
 
 if [ ${#csv_files[@]} -eq 0 ]; then
     echo "Error: No CSV files found in customer folder."
@@ -31,7 +31,7 @@ echo "Found ${#csv_files[@]} CSV files to process..."
 # Process each CSV file
 for csv_file in "${csv_files[@]}"; do
     table_name=$(basename "$csv_file" .csv)
-    csv_path="/data/data/customer/$csv_file"
+    csv_path="$DATA_PATH/customer/$csv_file"
     
     echo "Processing: $csv_file -> Table: $table_name"
     docker exec -i $POSTGRES_CONTAINER psql -U $POSTGRES_USER -d $POSTGRES_DB -c "SELECT create_table_from_csv('$table_name', '$csv_path');"
