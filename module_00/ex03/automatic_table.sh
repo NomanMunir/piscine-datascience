@@ -35,6 +35,10 @@ for csv_file in "${csv_files[@]}"; do
     
     echo "Processing: $csv_file -> Table: $table_name"
     docker exec -i $CONTAINER_NAME psql -U $DB_USER -d $DB_NAME -c "SELECT create_table_from_csv('$table_name', '$csv_path');"
+    if [ $? -ne 0 ]; then
+        echo "Error: Failed to create table from $csv_file."
+        exit 1
+    fi
 done
 
 echo ""

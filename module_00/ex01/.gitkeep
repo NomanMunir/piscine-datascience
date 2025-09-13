@@ -1,0 +1,18 @@
+# Exercise 01: Show me your DB
+# Turn-in directory: ex01/
+# Files to turn in: Nothing to turn in
+# Allowed functions: pgAdmin, Postico, DBeaver or any other tool of your choice
+
+# Objective:
+# - Find a way to easily visualize your database using a software tool
+# - The chosen software should allow you to browse and manipulate data easily,
+#   especially using record IDs
+
+# This exercise focuses on setting up database visualization tools rather than code.
+# Common tools include:
+# - pgAdmin (web-based PostgreSQL administration)
+# - DBeaver (universal database tool)
+# - Postico (macOS PostgreSQL client)
+# - DataGrip (JetBrains database IDE)
+
+# Remove this file when you add actual content to this directory
