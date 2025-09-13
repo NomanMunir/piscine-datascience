@@ -35,30 +35,9 @@ BEGIN
     -- Get row count for verification
     EXECUTE format('SELECT COUNT(*) FROM %I', table_name) INTO result_message;
     
-    RETURN format('✅ Table %I created successfully with %s rows', table_name, result_message);
+    RETURN format('Table %I created successfully with %s rows', table_name, result_message);
     
 EXCEPTION WHEN OTHERS THEN
-    RETURN format('❌ Error creating table %I: %s', table_name, SQLERRM);
+    RETURN format('Error creating table %I: %s', table_name, SQLERRM);
 END;
 $$ LANGUAGE plpgsql;
-
--- Display summary of all created tables
-SELECT 
-    table_name,
-    (SELECT COUNT(*) FROM information_schema.columns WHERE table_name = t.table_name) as column_count,
-    pg_size_pretty(pg_total_relation_size(table_name::regclass)) as table_size
-FROM information_schema.tables t
-WHERE table_schema = 'public' 
-AND table_name LIKE 'data_202%'
-ORDER BY table_name;
-
--- Show data types for verification (should be 6 different types for each table)
-SELECT 
-    table_name,
-    column_name,
-    data_type,
-    is_nullable
-FROM information_schema.columns 
-WHERE table_name LIKE 'data_202%'
-AND table_schema = 'public'
-ORDER BY table_name, ordinal_position;
