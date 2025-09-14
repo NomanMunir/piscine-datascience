@@ -119,12 +119,10 @@ EOF
 }
 
 create_fusion_indexes() {
-    echo "Creating performance indexes for enhanced customers table..."
+    echo "Creating essential indexes for enhanced customers table..."
     
     execute_sql_script << 'EOF'
 CREATE INDEX IF NOT EXISTS idx_customers_category_id ON customers (category_id);
-CREATE INDEX IF NOT EXISTS idx_customers_brand ON customers (brand);
-CREATE INDEX IF NOT EXISTS idx_customers_category_code ON customers (category_code);
 EOF
 
     if [ $? -ne 0 ]; then
@@ -132,7 +130,7 @@ EOF
         return 1
     fi
     
-    echo "✓ Successfully created fusion indexes"
+    echo "✓ Successfully created essential indexes"
     return 0
 }
 

@@ -81,14 +81,11 @@ EOF
 }
 
 recreate_indexes() {
-    echo "Recreating performance indexes..."
+    echo "Creating essential performance indexes..."
     
     docker exec -i "$POSTGRES_CONTAINER" psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" << 'EOF'
-CREATE INDEX IF NOT EXISTS idx_customers_user_product_time ON customers (user_id, product_id, event_time);
-CREATE INDEX IF NOT EXISTS idx_customers_dedup_columns ON customers (user_id, product_id, event_type, price, user_session);
 CREATE INDEX IF NOT EXISTS idx_customers_event_time ON customers (event_time);
-CREATE INDEX IF NOT EXISTS idx_customers_user_session ON customers (user_session);
-CREATE INDEX IF NOT EXISTS idx_customers_composite_lookup ON customers (event_type, product_id, user_id);
+CREATE INDEX IF NOT EXISTS idx_customers_user_product ON customers (user_id, product_id);
 EOF
 
     if [ $? -ne 0 ]; then
@@ -96,7 +93,7 @@ EOF
         return 1
     fi
     
-    echo "✓ Successfully recreated all indexes"
+    echo "✓ Successfully recreated essential indexes"
     return 0
 }
 
@@ -125,9 +122,9 @@ if ! replace_customers_table; then
     exit 1
 fi
 
-# if ! recreate_indexes; then
-#     exit 1
-# fi
+if ! recreate_indexes; then
+    exit 1
+fi
 
 final_count=$(get_row_count "customers")
 removed=$((original_count - final_count))

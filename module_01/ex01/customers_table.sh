@@ -16,14 +16,10 @@ check_existing_data() {
 }
 
 create_indexes() {
-    echo "Creating performance indexes..."
+    echo "Creating essential indexes..."
     
     docker exec -i "$POSTGRES_CONTAINER" psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" << 'EOF'
 CREATE INDEX IF NOT EXISTS idx_customers_user_product_time ON customers (user_id, product_id, event_time);
-CREATE INDEX IF NOT EXISTS idx_customers_dedup_columns ON customers (user_id, product_id, event_type, price, user_session);
-CREATE INDEX IF NOT EXISTS idx_customers_event_time ON customers (event_time);
-CREATE INDEX IF NOT EXISTS idx_customers_user_session ON customers (user_session);
-CREATE INDEX IF NOT EXISTS idx_customers_composite_lookup ON customers (event_type, product_id, user_id);
 EOF
 
     if [ $? -ne 0 ]; then
@@ -31,7 +27,7 @@ EOF
         return 1
     fi
     
-    echo "✓ Successfully created all indexes"
+    echo "✓ Successfully created essential indexes"
     return 0
 }
 
