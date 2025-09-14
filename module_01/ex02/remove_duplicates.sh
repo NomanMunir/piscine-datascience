@@ -25,16 +25,35 @@ get_row_count() {
 }
 
 create_dedup_table() {
-    echo "Creating deduplicated table using DISTINCT ON..."
+    echo "Creating deduplicated table using two-stage approach..."
     
     docker exec -i "$POSTGRES_CONTAINER" psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" << 'EOF'
 DROP TABLE IF EXISTS customers_dedup;
 
 CREATE TABLE customers_dedup AS
-SELECT DISTINCT ON (event_type, product_id, user_id, user_session, date_trunc('second', event_time))
-       *
-FROM customers
-ORDER BY event_type, product_id, user_id, user_session, date_trunc('second', event_time), event_time;
+WITH exact_duplicates_removed AS (
+    SELECT DISTINCT ON (user_id, product_id, event_type, price, user_session, event_time)
+           *
+    FROM customers
+    ORDER BY user_id, product_id, event_type, price, user_session, event_time
+),
+ranked_events AS (
+    SELECT *,
+           LAG(event_time) OVER (
+               PARTITION BY user_id, product_id, event_type, price, user_session 
+               ORDER BY event_time
+           ) as prev_event_time
+    FROM exact_duplicates_removed
+),
+filtered_events AS (
+    SELECT *
+    FROM ranked_events
+    WHERE prev_event_time IS NULL 
+       OR EXTRACT(EPOCH FROM (event_time - prev_event_time)) > 1
+)
+SELECT event_time, event_type, product_id, price, user_id, user_session
+FROM filtered_events
+ORDER BY event_time;
 EOF
 
     if [ $? -ne 0 ]; then
@@ -106,9 +125,9 @@ if ! replace_customers_table; then
     exit 1
 fi
 
-if ! recreate_indexes; then
-    exit 1
-fi
+# if ! recreate_indexes; then
+#     exit 1
+# fi
 
 final_count=$(get_row_count "customers")
 removed=$((original_count - final_count))
