@@ -58,38 +58,11 @@ check_existing_fusion() {
     return 1
 }
 
-create_clean_items_table() {
-    echo "Creating clean items table (removing duplicates by keeping most complete records)..."
-    
-    execute_sql_script << 'EOF'
-DROP TABLE IF EXISTS items_clean;
-
-CREATE TABLE items_clean AS
-SELECT DISTINCT ON (product_id) 
-    product_id, 
-    category_id, 
-    category_code, 
-    brand
-FROM items
-ORDER BY product_id, 
-    (CASE WHEN brand IS NOT NULL AND brand != '' THEN 1 ELSE 0 END) DESC,
-    (CASE WHEN category_code IS NOT NULL AND category_code != '' THEN 1 ELSE 0 END) DESC,
-    (CASE WHEN category_id IS NOT NULL THEN 1 ELSE 0 END) DESC;
-EOF
-
-    if [ $? -ne 0 ]; then
-        echo "✗ Failed to create clean items table"
-        return 1
-    fi
-    
-    return 0
-}
-
 create_fusion_table() {
-    echo "Creating enhanced customers table with items information..."
+    echo "Creating enhanced customers table with items information (handling duplicates inline)..."
     
     execute_sql_script << 'EOF'
--- Create enhanced customers table with items info
+-- Create enhanced customers table with items info and inline deduplication
 CREATE TABLE customers_tmp AS (
     SELECT 
         c.event_time,
@@ -102,7 +75,18 @@ CREATE TABLE customers_tmp AS (
         i.category_code,
         i.brand
     FROM customers c
-    LEFT JOIN items_clean i ON c.product_id = i.product_id
+    LEFT JOIN (
+        SELECT DISTINCT ON (product_id) 
+            product_id, 
+            category_id, 
+            category_code, 
+            brand
+        FROM items
+        ORDER BY product_id, 
+            (CASE WHEN brand IS NOT NULL AND brand != '' THEN 1 ELSE 0 END) DESC,
+            (CASE WHEN category_code IS NOT NULL AND category_code != '' THEN 1 ELSE 0 END) DESC,
+            (CASE WHEN category_id IS NOT NULL THEN 1 ELSE 0 END) DESC
+    ) i ON c.product_id = i.product_id
 );
 
 -- Replace original customers table
@@ -149,13 +133,6 @@ items_count=$(get_row_count "items")
 echo "Customers rows: $customers_count"
 echo "Items rows: $items_count"
 
-if ! create_clean_items_table; then
-    exit 1
-fi
-
-items_clean_count=$(get_row_count "items_clean")
-echo "Items (after deduplication): $items_clean_count"
-
 if ! create_fusion_table; then
     exit 1
 fi
@@ -170,5 +147,4 @@ echo ""
 echo "✓ Successfully enhanced customers table with items information!"
 echo "✓ Customers rows: $final_customers_count (no data lost)"
 echo "✓ Original items rows: $items_count"
-echo "✓ Clean items rows: $items_clean_count"
 echo "✓ Enhanced table: customers (with category_id, category_code, brand columns)"
