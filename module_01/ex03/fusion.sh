@@ -4,16 +4,25 @@ if [ -f "../.env" ]; then
     source ../.env
 fi
 
+execute_sql() {
+    local sql_query="$1"
+    docker exec "$POSTGRES_CONTAINER" psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -t -c "$sql_query" 2>/dev/null | tr -d ' '
+}
+
+execute_sql_script() {
+    docker exec -i "$POSTGRES_CONTAINER" psql -U "$POSTGRES_USER" -d "$POSTGRES_DB"
+}
+
 check_required_tables() {
-    local customers_exists=$(docker exec "$POSTGRES_CONTAINER" psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -t -c "
+    local customers_exists=$(execute_sql "
         SELECT COUNT(*) FROM information_schema.tables 
         WHERE table_schema = 'public' AND table_name = 'customers';
-    " 2>/dev/null | tr -d ' ')
+    ")
     
-    local items_exists=$(docker exec "$POSTGRES_CONTAINER" psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -t -c "
+    local items_exists=$(execute_sql "
         SELECT COUNT(*) FROM information_schema.tables 
         WHERE table_schema = 'public' AND table_name = 'items';
-    " 2>/dev/null | tr -d ' ')
+    ")
     
     if [ "$customers_exists" -ne 1 ] 2>/dev/null; then
         echo "✗ Customers table does not exist!"
@@ -30,51 +39,79 @@ check_required_tables() {
 
 get_row_count() {
     local table_name=$1
-    local count=$(docker exec "$POSTGRES_CONTAINER" psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -t -c "SELECT COUNT(*) FROM $table_name;" 2>/dev/null | tr -d ' ')
+    local count=$(execute_sql "SELECT COUNT(*) FROM $table_name;")
     echo "$count"
 }
 
 check_existing_fusion() {
-    local existing_rows=$(docker exec "$POSTGRES_CONTAINER" psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -t -c "
-        SELECT COUNT(*) FROM information_schema.tables 
-        WHERE table_schema = 'public' AND table_name = 'customers_items';
-    " 2>/dev/null | tr -d ' ')
+    local has_items_columns=$(execute_sql "
+        SELECT COUNT(*) FROM information_schema.columns 
+        WHERE table_name = 'customers' 
+        AND column_name IN ('category_id', 'category_code', 'brand');
+    ")
     
-    if [ "$existing_rows" -eq 1 ] 2>/dev/null; then
-        local row_count=$(get_row_count "customers_items")
-        if [ "$row_count" -gt 0 ] 2>/dev/null; then
-            echo "Fusion table 'customers_items' already exists with $row_count rows. Skipping creation."
-            return 0
-        fi
+    if [ "$has_items_columns" -eq 3 ] 2>/dev/null; then
+        echo "Customers table already has items columns. Skipping fusion."
+        return 0
     fi
     
     return 1
 }
 
-create_fusion_table() {
-    echo "Creating fusion table by joining customers with items..."
+create_clean_items_table() {
+    echo "Creating clean items table (removing duplicates by keeping most complete records)..."
     
-    docker exec -i "$POSTGRES_CONTAINER" psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" << 'EOF'
-DROP TABLE IF EXISTS customers_items;
+    execute_sql_script << 'EOF'
+DROP TABLE IF EXISTS items_clean;
 
-CREATE TABLE customers_items AS
-SELECT 
-    c.event_time,
-    c.event_type,
-    c.product_id,
-    c.price,
-    c.user_id,
-    c.user_session,
-    i.category_id,
-    i.category_code,
-    i.brand
-FROM customers c
-LEFT JOIN items i ON c.product_id = i.product_id
-ORDER BY c.event_time;
+CREATE TABLE items_clean AS
+SELECT DISTINCT ON (product_id) 
+    product_id, 
+    category_id, 
+    category_code, 
+    brand
+FROM items
+ORDER BY product_id, 
+    (CASE WHEN brand IS NOT NULL AND brand != '' THEN 1 ELSE 0 END) DESC,
+    (CASE WHEN category_code IS NOT NULL AND category_code != '' THEN 1 ELSE 0 END) DESC,
+    (CASE WHEN category_id IS NOT NULL THEN 1 ELSE 0 END) DESC;
 EOF
 
     if [ $? -ne 0 ]; then
-        echo "✗ Failed to create fusion table"
+        echo "✗ Failed to create clean items table"
+        return 1
+    fi
+    
+    return 0
+}
+
+create_fusion_table() {
+    echo "Creating enhanced customers table with items information..."
+    
+    execute_sql_script << 'EOF'
+-- Create enhanced customers table with items info
+CREATE TABLE customers_tmp AS (
+    SELECT 
+        c.event_time,
+        c.event_type,
+        c.product_id,
+        c.price,
+        c.user_id,
+        c.user_session,
+        i.category_id,
+        i.category_code,
+        i.brand
+    FROM customers c
+    LEFT JOIN items_clean i ON c.product_id = i.product_id
+);
+
+-- Replace original customers table
+DROP TABLE customers;
+ALTER TABLE customers_tmp RENAME TO customers;
+EOF
+
+    if [ $? -ne 0 ]; then
+        echo "✗ Failed to create enhanced customers table"
         return 1
     fi
     
@@ -82,27 +119,24 @@ EOF
 }
 
 create_fusion_indexes() {
-    echo "Creating performance indexes for fusion table..."
+    echo "Creating performance indexes for enhanced customers table..."
     
-    docker exec -i "$POSTGRES_CONTAINER" psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" << 'EOF'
-CREATE INDEX IF NOT EXISTS idx_customers_items_event_time ON customers_items (event_time);
-CREATE INDEX IF NOT EXISTS idx_customers_items_user_id ON customers_items (user_id);
-CREATE INDEX IF NOT EXISTS idx_customers_items_product_id ON customers_items (product_id);
-CREATE INDEX IF NOT EXISTS idx_customers_items_category_id ON customers_items (category_id);
-CREATE INDEX IF NOT EXISTS idx_customers_items_user_session ON customers_items (user_session);
-CREATE INDEX IF NOT EXISTS idx_customers_items_composite ON customers_items (user_id, product_id, event_time);
+    execute_sql_script << 'EOF'
+CREATE INDEX IF NOT EXISTS idx_customers_category_id ON customers (category_id);
+CREATE INDEX IF NOT EXISTS idx_customers_brand ON customers (brand);
+CREATE INDEX IF NOT EXISTS idx_customers_category_code ON customers (category_code);
 EOF
 
     if [ $? -ne 0 ]; then
-        echo "✗ Failed to create fusion table indexes"
+        echo "✗ Failed to create fusion indexes"
         return 1
     fi
     
-    echo "✓ Successfully created all fusion table indexes"
+    echo "✓ Successfully created fusion indexes"
     return 0
 }
 
-echo "Creating fusion of customers and items tables..."
+echo "Adding items information to customers table..."
 
 if ! check_required_tables; then
     exit 1
@@ -117,6 +151,13 @@ items_count=$(get_row_count "items")
 echo "Customers rows: $customers_count"
 echo "Items rows: $items_count"
 
+if ! create_clean_items_table; then
+    exit 1
+fi
+
+items_clean_count=$(get_row_count "items_clean")
+echo "Items (after deduplication): $items_clean_count"
+
 if ! create_fusion_table; then
     exit 1
 fi
@@ -125,11 +166,11 @@ if ! create_fusion_indexes; then
     exit 1
 fi
 
-fusion_count=$(get_row_count "customers_items")
+final_customers_count=$(get_row_count "customers")
 
 echo ""
-echo "✓ Successfully created fusion table!"
-echo "✓ Customers rows: $customers_count"
-echo "✓ Items rows: $items_count"
-echo "✓ Fusion rows: $fusion_count"
-echo "✓ Table: customers_items"
+echo "✓ Successfully enhanced customers table with items information!"
+echo "✓ Customers rows: $final_customers_count (no data lost)"
+echo "✓ Original items rows: $items_count"
+echo "✓ Clean items rows: $items_clean_count"
+echo "✓ Enhanced table: customers (with category_id, category_code, brand columns)"
