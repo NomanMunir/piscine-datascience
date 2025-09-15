@@ -6,6 +6,14 @@ This module covers the fundamentals of database creation, table management, and 
 
 Module 00 introduces data science students to database concepts through hands-on exercises using PostgreSQL, pgAdmin, and Docker Compose. Each exercise builds upon the previous one, progressing from basic database setup to automated table creation with comprehensive error handling and progress tracking.
 
+## Learning Objectives
+
+- Set up PostgreSQL database using Docker
+- Learn basic SQL operations and table management
+- Understand data loading and validation
+- Practice automated database operations
+- Implement error handling and progress tracking
+
 ## Prerequisites
 
 - Docker and Docker Compose installed
