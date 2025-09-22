@@ -9,6 +9,7 @@ dependencies = [
     "matplotlib>=3.10.6",
     "pandas>=2.3.2",
     "psycopg2-binary>=2.9.10",
+    "pyside6>=6.9.2",
     "python-dotenv>=1.1.1",
     "seaborn>=0.13.2",
 ]
