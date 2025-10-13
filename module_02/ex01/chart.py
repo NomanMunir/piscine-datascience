@@ -1,10 +1,10 @@
 import matplotlib.pyplot as plt
 import pandas as pd
-import psycopg2
 import os
 from pathlib import Path
 from dotenv import load_dotenv
 import matplotlib.dates as mdates
+from sqlalchemy import create_engine
 
 plt.ion()
 env_path = Path(__file__).parent.parent / ".env"
@@ -12,13 +12,14 @@ load_dotenv(env_path)
 
 def get_data():
     """Connect to database and extract purchase data for analysis"""
-    conn = psycopg2.connect(
-        host=os.getenv('POSTGRES_HOST', 'localhost'),
-        port=os.getenv('POSTGRES_PORT', '5432'),
-        database=os.getenv('POSTGRES_DB'),
-        user=os.getenv('POSTGRES_USER'),
-        password=os.getenv('POSTGRES_PASSWORD')
-    )
+    db_host = os.getenv('POSTGRES_HOST', 'localhost')
+    db_port = os.getenv('POSTGRES_PORT', '5432')
+    db_name = os.getenv('POSTGRES_DB')
+    db_user = os.getenv('POSTGRES_USER')
+    db_password = os.getenv('POSTGRES_PASSWORD')
+    
+    connection_string = f"postgresql://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}"
+    engine = create_engine(connection_string)
     
     query = """
     SELECT event_time, price, user_id
@@ -28,8 +29,8 @@ def get_data():
         AND event_time < '2023-02-28'
     """
     
-    data = pd.read_sql_query(query, conn)
-    conn.close()
+    data = pd.read_sql_query(query, engine)
+    engine.dispose()
     
     data['event_time'] = pd.to_datetime(data['event_time'])
     data['date'] = data['event_time'].dt.date

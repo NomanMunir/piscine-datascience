@@ -2,31 +2,32 @@
 
 import matplotlib.pyplot as plt
 import pandas as pd
-import psycopg2
 import os
 from pathlib import Path
 from dotenv import load_dotenv
 from sklearn.cluster import KMeans
 from sklearn.preprocessing import StandardScaler
 import numpy as np
+from sqlalchemy import create_engine
 
 plt.ion()
 env_path = Path(__file__).parent.parent / ".env"
 load_dotenv(env_path)
 
-def get_db_connection():
-    """Establish PostgreSQL database connection using environment variables."""
-    return psycopg2.connect(
-        host=os.getenv('POSTGRES_HOST', 'localhost'),
-        port=os.getenv('POSTGRES_PORT', '5432'),
-        database=os.getenv('POSTGRES_DB'),
-        user=os.getenv('POSTGRES_USER'),
-        password=os.getenv('POSTGRES_PASSWORD')
-    )
+def get_db_engine():
+    """Establish PostgreSQL database engine using environment variables."""
+    db_host = os.getenv('POSTGRES_HOST', 'localhost')
+    db_port = os.getenv('POSTGRES_PORT', '5432')
+    db_name = os.getenv('POSTGRES_DB')
+    db_user = os.getenv('POSTGRES_USER')
+    db_password = os.getenv('POSTGRES_PASSWORD')
+    
+    connection_string = f"postgresql://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}"
+    return create_engine(connection_string)
 
 def extract_customer_data():
     """Extract customer purchase data for clustering analysis."""
-    conn = get_db_connection()
+    engine = get_db_engine()
     
     query = """
     SELECT user_id, price
@@ -35,8 +36,8 @@ def extract_customer_data():
         AND price IS NOT NULL
     """
     
-    data = pd.read_sql_query(query, conn)
-    conn.close()
+    data = pd.read_sql_query(query, engine)
+    engine.dispose()
     return data
 
 def prepare_clustering_features(data):

@@ -3,7 +3,6 @@
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-import psycopg2
 from sklearn.cluster import KMeans
 from sklearn.preprocessing import StandardScaler
 from datetime import datetime, timedelta
@@ -11,30 +10,31 @@ from sklearn.metrics import silhouette_score
 import os
 from pathlib import Path
 from dotenv import load_dotenv
+from sqlalchemy import create_engine
 
 plt.ion()
 env_path = Path(__file__).parent.parent / ".env"
 load_dotenv(env_path)
 
-def connect_to_db():
+def get_db_engine():
     """Connect to PostgreSQL database using environment variables"""
     try:
-        conn = psycopg2.connect(
-            host=os.getenv('POSTGRES_HOST', 'localhost'),
-            port=os.getenv('POSTGRES_PORT', '5432'),
-            database=os.getenv('POSTGRES_DB', 'piscineds'),
-            user=os.getenv('POSTGRES_USER', 'nomunir'),
-            password=os.getenv('POSTGRES_PASSWORD', 'mysecretpassword')
-        )
-        return conn
+        db_host = os.getenv('POSTGRES_HOST', 'localhost')
+        db_port = os.getenv('POSTGRES_PORT', '5432')
+        db_name = os.getenv('POSTGRES_DB', 'piscineds')
+        db_user = os.getenv('POSTGRES_USER', 'nomunir')
+        db_password = os.getenv('POSTGRES_PASSWORD', 'mysecretpassword')
+        
+        connection_string = f"postgresql://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}"
+        return create_engine(connection_string)
     except Exception as e:
         print(f"Error connecting to database: {e}")
         return None
 
 def extract_customer_features():
     """Extract customer behavioral features for clustering"""
-    conn = connect_to_db()
-    if not conn:
+    engine = get_db_engine()
+    if not engine:
         return None
     
     print("Extracting customer behavioral features...")
@@ -59,8 +59,8 @@ def extract_customer_features():
     """
     
     try:
-        data = pd.read_sql_query(query, conn)
-        conn.close()
+        data = pd.read_sql_query(query, engine)
+        engine.dispose()
         
         # Calculate engagement rate and purchase intensity
         data['engagement_rate'] = data.apply(
@@ -76,7 +76,8 @@ def extract_customer_features():
         return data
     except Exception as e:
         print(f"Error extracting data: {e}")
-        conn.close()
+        if engine:
+            engine.dispose()
         return None
 
 def create_customer_segments(data):
