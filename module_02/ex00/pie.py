@@ -71,8 +71,15 @@ def main():
     ax.axis("equal")
 
     plt.show(block=False)
-    input("Press Enter to exit...")
+    try:
+        input("Press Enter to exit...")
+    except KeyboardInterrupt:
+        print("\n\nProgram interrupted by user. Exiting gracefully...")
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        print("\n\nProgram interrupted by user. Exiting gracefully...")
+        plt.close('all')

@@ -535,8 +535,16 @@ def main():
     print("📊 4 comprehensive visualizations generated successfully!")
     print("🎯 Use these segments for targeted email marketing campaigns.")
 
-    input("\nPress Enter to exit...")
+    try:
+        input("\nPress Enter to exit...")
+    except KeyboardInterrupt:
+        print("\n\nProgram interrupted by user. Exiting gracefully...")
+        plt.close('all')
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        print("\n\nProgram interrupted by user. Exiting gracefully...")
+        plt.close('all')

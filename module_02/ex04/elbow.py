@@ -144,6 +144,9 @@ def main():
         input("Press Enter to exit...")
         plt.close(fig)
 
+    except KeyboardInterrupt:
+        print("\n\nProgram interrupted by user. Exiting gracefully...")
+        plt.close('all')
     except Exception as e:
         print(f"Error: {e}")
 
