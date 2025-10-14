@@ -67,11 +67,17 @@ def create_frequency_chart(data):
 
     fig, ax = plt.subplots(figsize=(10, 6))
 
+    # Use actual bin positions for x-axis
+    x_positions = [0, 10, 20, 30, 40]
+    bar_width = 8  # Width of each bar
+
     ax.bar(
-        range(len(frequency_counts)),
+        x_positions,
         frequency_counts.values,
-        color="lightblue",
-        alpha=0.8,
+        width=bar_width,
+        color="#A8C5DD",
+        alpha=0.9,
+        edgecolor="none",
     )
 
     ax.set_xlabel("frequency")
@@ -79,8 +85,9 @@ def create_frequency_chart(data):
     ax.set_title(
         "Number of Orders According to Frequency", fontsize=14, fontweight="bold"
     )
-    ax.set_xticks(range(len(labels)))
+    ax.set_xticks(x_positions)
     ax.set_xticklabels(["0", "10", "20", "30", "40"])
+    ax.set_xlim(-5, 45)  # Add some padding on both sides
     ax.grid(True, alpha=0.3, axis="y")
     plt.tight_layout()
     return fig
@@ -101,11 +108,17 @@ def create_spending_chart(data):
 
     fig, ax = plt.subplots(figsize=(10, 6))
 
+    # Use actual bin positions for x-axis
+    x_positions = [0, 50, 100, 150, 200]
+    bar_width = 40  # Width of each bar
+
     ax.bar(
-        range(len(spending_counts)),
+        x_positions,
         spending_counts.values,
-        color="lightblue",
-        alpha=0.8,
+        width=bar_width,
+        color="#A8C5DD",
+        alpha=0.9,
+        edgecolor="none",
     )
 
     ax.set_xlabel("monetary value in ₳")
@@ -115,8 +128,9 @@ def create_spending_chart(data):
         fontsize=14,
         fontweight="bold",
     )
-    ax.set_xticks(range(len(labels)))
+    ax.set_xticks(x_positions)
     ax.set_xticklabels(["0", "50", "100", "150", "200"])
+    ax.set_xlim(-25, 225)  # Add some padding on both sides
     ax.grid(True, alpha=0.3, axis="y")
     plt.tight_layout()
     return fig
