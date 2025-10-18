@@ -303,8 +303,6 @@ def create_four_key_visualizations(data):
     plt.show()
 
     # Chart 4: Business Value Analysis
-    plt.figure(figsize=(14, 8))
-
     # Calculate segment metrics
     segment_metrics = (
         data.groupby("customer_segment")
@@ -327,6 +325,7 @@ def create_four_key_visualizations(data):
         "Business Intelligence: Customer Segment Analysis",
         fontsize=16,
         fontweight="bold",
+        y=0.98,
     )
 
     # Revenue per segment
@@ -334,9 +333,10 @@ def create_four_key_visualizations(data):
     bars1 = ax1.bar(
         segment_metrics.index, segment_metrics["Avg_Spent"], color=colors_list
     )
-    ax1.set_title("Average Customer Value", fontweight="bold")
+    ax1.set_title("Average Customer Value", fontweight="bold", pad=15)
     ax1.set_ylabel("Average Total Spent ($)")
-    ax1.tick_params(axis="x", rotation=45)
+    ax1.tick_params(axis="x", rotation=45, labelsize=9)
+    plt.setp(ax1.xaxis.get_majorticklabels(), ha="right")
 
     for bar in bars1:
         height = bar.get_height()
@@ -347,15 +347,20 @@ def create_four_key_visualizations(data):
             ha="center",
             va="bottom",
             fontweight="bold",
+            fontsize=9,
         )
+    
+    # Adjust y-axis to accommodate labels
+    ax1.set_ylim(0, segment_metrics["Avg_Spent"].max() * 1.15)
 
     # Purchase frequency
     bars2 = ax2.bar(
         segment_metrics.index, segment_metrics["Avg_Purchases"], color=colors_list
     )
-    ax2.set_title("Average Purchase Frequency", fontweight="bold")
+    ax2.set_title("Average Purchase Frequency", fontweight="bold", pad=15)
     ax2.set_ylabel("Average Number of Purchases")
-    ax2.tick_params(axis="x", rotation=45)
+    ax2.tick_params(axis="x", rotation=45, labelsize=9)
+    plt.setp(ax2.xaxis.get_majorticklabels(), ha="right")
 
     for bar in bars2:
         height = bar.get_height()
@@ -366,13 +371,18 @@ def create_four_key_visualizations(data):
             ha="center",
             va="bottom",
             fontweight="bold",
+            fontsize=9,
         )
+    
+    # Adjust y-axis to accommodate labels
+    ax2.set_ylim(0, segment_metrics["Avg_Purchases"].max() * 1.15)
 
     # Customer count
     bars3 = ax3.bar(segment_metrics.index, segment_metrics["Count"], color=colors_list)
-    ax3.set_title("Segment Size", fontweight="bold")
+    ax3.set_title("Segment Size", fontweight="bold", pad=15)
     ax3.set_ylabel("Number of Customers")
-    ax3.tick_params(axis="x", rotation=45)
+    ax3.tick_params(axis="x", rotation=45, labelsize=9)
+    plt.setp(ax3.xaxis.get_majorticklabels(), ha="right")
 
     for bar in bars3:
         height = bar.get_height()
@@ -383,15 +393,20 @@ def create_four_key_visualizations(data):
             ha="center",
             va="bottom",
             fontweight="bold",
+            fontsize=9,
         )
+    
+    # Adjust y-axis to accommodate labels
+    ax3.set_ylim(0, segment_metrics["Count"].max() * 1.15)
 
     # Recency analysis
     bars4 = ax4.bar(
         segment_metrics.index, segment_metrics["Avg_Recency"], color=colors_list
     )
-    ax4.set_title("Average Days Since Last Purchase", fontweight="bold")
+    ax4.set_title("Average Days Since Last Purchase", fontweight="bold", pad=15)
     ax4.set_ylabel("Days")
-    ax4.tick_params(axis="x", rotation=45)
+    ax4.tick_params(axis="x", rotation=45, labelsize=9)
+    plt.setp(ax4.xaxis.get_majorticklabels(), ha="right")
 
     for bar in bars4:
         height = bar.get_height()
@@ -402,9 +417,13 @@ def create_four_key_visualizations(data):
             ha="center",
             va="bottom",
             fontweight="bold",
+            fontsize=9,
         )
+    
+    # Adjust y-axis to accommodate labels
+    ax4.set_ylim(0, segment_metrics["Avg_Recency"].max() * 1.15)
 
-    plt.tight_layout()
+    plt.tight_layout(pad=2.0)
     plt.show()
 
     return segment_metrics

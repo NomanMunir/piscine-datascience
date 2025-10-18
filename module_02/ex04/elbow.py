@@ -141,8 +141,12 @@ def main():
 
         fig = plot_elbow_method(cluster_range, inertias)
         plt.show()
-        input("Press Enter to exit...")
-        plt.close(fig)
+        try:
+            input("Press Enter to exit...")
+        except KeyboardInterrupt:
+            print("\n\nProgram interrupted by user. Exiting gracefully...")
+        finally:
+            plt.close(fig)
 
     except KeyboardInterrupt:
         print("\n\nProgram interrupted by user. Exiting gracefully...")

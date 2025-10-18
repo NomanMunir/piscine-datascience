@@ -67,9 +67,8 @@ def create_frequency_chart(data):
 
     fig, ax = plt.subplots(figsize=(10, 6))
 
-    # Use actual bin positions for x-axis
     x_positions = [0, 10, 20, 30, 40]
-    bar_width = 8  # Width of each bar
+    bar_width = 8
 
     ax.bar(
         x_positions,
@@ -87,7 +86,7 @@ def create_frequency_chart(data):
     )
     ax.set_xticks(x_positions)
     ax.set_xticklabels(["0", "10", "20", "30", "40"])
-    ax.set_xlim(-5, 45)  # Add some padding on both sides
+    ax.set_xlim(-5, 45)
     ax.grid(True, alpha=0.3, axis="y")
     plt.tight_layout()
     return fig
@@ -108,9 +107,8 @@ def create_spending_chart(data):
 
     fig, ax = plt.subplots(figsize=(10, 6))
 
-    # Use actual bin positions for x-axis
     x_positions = [0, 50, 100, 150, 200]
-    bar_width = 40  # Width of each bar
+    bar_width = 40
 
     ax.bar(
         x_positions,
@@ -130,7 +128,7 @@ def create_spending_chart(data):
     )
     ax.set_xticks(x_positions)
     ax.set_xticklabels(["0", "50", "100", "150", "200"])
-    ax.set_xlim(-25, 225)  # Add some padding on both sides
+    ax.set_xlim(-25, 225)
     ax.grid(True, alpha=0.3, axis="y")
     plt.tight_layout()
     return fig
