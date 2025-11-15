@@ -1,17 +1,18 @@
 [project]
-name = "piscine-datascience"
+name = "PDC"
 version = "0.1.0"
-description = "Add your description here"
+description = "Piscine Data Science Project"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
+    "pyside6<6.4.3",
     "jupyter>=1.1.1",
     "matplotlib>=3.10.6",
     "numpy>=2.2.6",
     "pandas>=2.3.2",
     "psycopg2-binary>=2.9.11",
-    "pyside6>=6.9.2",
     "python-dotenv>=1.1.1",
     "scikit-learn>=1.7.2",
     "sqlalchemy>=2.0.44",
+    "seaborn>=0.11.2",  # Added seaborn for data visualization
 ]
