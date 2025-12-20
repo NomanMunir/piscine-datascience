@@ -42,8 +42,10 @@ def extract_order_data():
     query = """
     SELECT user_id, price
     FROM customers 
+
     WHERE event_type = 'purchase'
         AND price IS NOT NULL
+        AND price > 0
     """
 
     data = pd.read_sql_query(query, engine)
