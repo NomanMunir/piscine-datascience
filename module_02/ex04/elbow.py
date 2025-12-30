@@ -1,14 +1,30 @@
 """Elbow Method for finding optimal number of customer clusters."""
 
+import matplotlib
 import matplotlib.pyplot as plt
 import pandas as pd
 import os
+import sys
 from pathlib import Path
 from dotenv import load_dotenv
 from sklearn.cluster import KMeans
 from sklearn.preprocessing import StandardScaler
 import numpy as np
 from sqlalchemy import create_engine
+
+# Try to use interactive backends, fall back to Agg if none available
+backend_set = False
+for backend in ["TkAgg", "Qt5Agg"]:
+    try:
+        matplotlib.use(backend)
+        backend_set = True
+        break
+    except ImportError:
+        continue
+
+if not backend_set:
+    print("Warning: No GUI backend available. Using non-interactive 'Agg' backend.", file=sys.stderr)
+    matplotlib.use("Agg")
 
 plt.ion()
 env_path = Path(__file__).parent.parent / ".env"
@@ -23,6 +39,9 @@ def get_db_engine():
     db_user = os.getenv("POSTGRES_USER")
     db_password = os.getenv("POSTGRES_PASSWORD")
 
+    if not all([db_name, db_user, db_password]):
+        raise ValueError("Missing required database credentials")
+
     connection_string = (
         f"postgresql://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}"
     )
@@ -33,16 +52,18 @@ def extract_customer_data():
     """Extract customer purchase data for clustering analysis."""
     engine = get_db_engine()
 
-    query = """
-    SELECT user_id, price
-    FROM customers 
-    WHERE event_type = 'purchase'
-        AND price IS NOT NULL
-    """
+    try:
+        query = """
+        SELECT user_id, price
+        FROM customers 
+        WHERE event_type = 'purchase'
+            AND price IS NOT NULL
+        """
 
-    data = pd.read_sql_query(query, engine)
-    engine.dispose()
-    return data
+        data = pd.read_sql_query(query, engine)
+        return data
+    finally:
+        engine.dispose()
 
 
 def prepare_clustering_features(data):
@@ -109,51 +130,47 @@ def find_optimal_clusters(cluster_range, inertias):
 
 def main():
     """Main function to execute elbow method analysis."""
+    print("Connecting to database and extracting customer data...")
+    data = extract_customer_data()
+
+    if data.empty:
+        print("No customer data found.")
+        return
+
+    print(f"Found {len(data):,} purchase records")
+
+    print("Preparing clustering features...")
+    features_scaled, customer_features = prepare_clustering_features(data)
+
+    print(f"Analyzing {len(customer_features):,} unique customers")
+
+    print("Calculating elbow method...")
+    cluster_range, inertias = calculate_elbow_method(
+        features_scaled, max_clusters=10
+    )
+
+    optimal_k = find_optimal_clusters(cluster_range, inertias)
+
+    print(f"Suggested optimal number of clusters: {optimal_k}")
+    print("\nElbow Method Analysis:")
+    print("- The elbow point indicates where adding more clusters")
+    print("  provides diminishing returns in reducing inertia")
+    print(
+        "- Look for the 'bend' in the curve where the slope changes significantly"
+    )
+
+    fig = plot_elbow_method(cluster_range, inertias)
+    plt.show()
     try:
-        print("Connecting to database and extracting customer data...")
-        data = extract_customer_data()
-
-        if data.empty:
-            print("No customer data found.")
-            return
-
-        print(f"Found {len(data):,} purchase records")
-
-        print("Preparing clustering features...")
-        features_scaled, customer_features = prepare_clustering_features(data)
-
-        print(f"Analyzing {len(customer_features):,} unique customers")
-
-        print("Calculating elbow method...")
-        cluster_range, inertias = calculate_elbow_method(
-            features_scaled, max_clusters=10
-        )
-
-        optimal_k = find_optimal_clusters(cluster_range, inertias)
-
-        print(f"Suggested optimal number of clusters: {optimal_k}")
-        print("\nElbow Method Analysis:")
-        print("- The elbow point indicates where adding more clusters")
-        print("  provides diminishing returns in reducing inertia")
-        print(
-            "- Look for the 'bend' in the curve where the slope changes significantly"
-        )
-
-        fig = plot_elbow_method(cluster_range, inertias)
-        plt.show()
-        try:
-            input("Press Enter to exit...")
-        except KeyboardInterrupt:
-            print("\n\nProgram interrupted by user. Exiting gracefully...")
-        finally:
-            plt.close(fig)
-
-    except KeyboardInterrupt:
-        print("\n\nProgram interrupted by user. Exiting gracefully...")
-        plt.close('all')
-    except Exception as e:
-        print(f"Error: {e}")
+        input("Press Enter to exit...")
+    except (KeyboardInterrupt, EOFError):
+        pass
+    finally:
+        plt.close(fig)
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        pass

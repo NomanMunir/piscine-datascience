@@ -1,14 +1,30 @@
 #!/usr/bin/env python3
 
+import matplotlib
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.cluster import KMeans
 from sklearn.preprocessing import StandardScaler
 import os
+import sys
 from pathlib import Path
 from dotenv import load_dotenv
 from sqlalchemy import create_engine
+
+# Try to use interactive backends, fall back to Agg if none available
+backend_set = False
+for backend in ["TkAgg", "Qt5Agg"]:
+    try:
+        matplotlib.use(backend)
+        backend_set = True
+        break
+    except ImportError:
+        continue
+
+if not backend_set:
+    print("Warning: No GUI backend available. Using non-interactive 'Agg' backend.", file=sys.stderr)
+    matplotlib.use("Agg")
 
 plt.ion()
 env_path = Path(__file__).parent.parent / ".env"
@@ -17,27 +33,24 @@ load_dotenv(env_path)
 
 def get_db_engine():
     """Connect to PostgreSQL database using environment variables"""
-    try:
-        db_host = os.getenv("POSTGRES_HOST", "localhost")
-        db_port = os.getenv("POSTGRES_PORT", "5432")
-        db_name = os.getenv("POSTGRES_DB")
-        db_user = os.getenv("POSTGRES_USER")
-        db_password = os.getenv("POSTGRES_PASSWORD")
+    db_host = os.getenv("POSTGRES_HOST", "localhost")
+    db_port = os.getenv("POSTGRES_PORT", "5432")
+    db_name = os.getenv("POSTGRES_DB")
+    db_user = os.getenv("POSTGRES_USER")
+    db_password = os.getenv("POSTGRES_PASSWORD")
 
-        connection_string = (
-            f"postgresql://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}"
-        )
-        return create_engine(connection_string)
-    except Exception as e:
-        print(f"Error connecting to database: {e}")
-        return None
+    if not all([db_name, db_user, db_password]):
+        raise ValueError("Missing required database credentials")
+
+    connection_string = (
+        f"postgresql://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}"
+    )
+    return create_engine(connection_string)
 
 
 def extract_customer_features():
     """Extract customer behavioral features for clustering"""
     engine = get_db_engine()
-    if not engine:
-        return None
 
     print("Extracting customer behavioral features...")
 
@@ -62,7 +75,6 @@ def extract_customer_features():
 
     try:
         data = pd.read_sql_query(query, engine)
-        engine.dispose()
 
         # Calculate engagement rate and purchase intensity
         data["engagement_rate"] = data.apply(
@@ -84,11 +96,8 @@ def extract_customer_features():
 
         print(f"Extracted features for {len(data)} customers")
         return data
-    except Exception as e:
-        print(f"Error extracting data: {e}")
-        if engine:
-            engine.dispose()
-        return None
+    finally:
+        engine.dispose()
 
 
 def create_customer_segments(data):
@@ -518,8 +527,8 @@ def main():
 
     # Extract customer features
     customer_data = extract_customer_features()
-    if customer_data is None:
-        print("Failed to extract customer data. Exiting.")
+    if customer_data is None or customer_data.empty:
+        print("No customer data available. Exiting.")
         return
 
     print(f"Successfully loaded data for {len(customer_data)} customers")
@@ -556,14 +565,14 @@ def main():
 
     try:
         input("\nPress Enter to exit...")
-    except KeyboardInterrupt:
-        print("\n\nProgram interrupted by user. Exiting gracefully...")
-        plt.close('all')
+    except (KeyboardInterrupt, EOFError):
+        pass
 
 
 if __name__ == "__main__":
     try:
         main()
     except KeyboardInterrupt:
-        print("\n\nProgram interrupted by user. Exiting gracefully...")
+        pass
+    finally:
         plt.close('all')

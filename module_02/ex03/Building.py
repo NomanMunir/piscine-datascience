@@ -4,20 +4,26 @@ import matplotlib
 import matplotlib.pyplot as plt
 import pandas as pd
 import os
+import sys
 from pathlib import Path
 from dotenv import load_dotenv
 from sqlalchemy import create_engine
 
-try:
-    matplotlib.use("Qt5Agg")
-except ImportError:
+backend_set = False
+for backend in ["TkAgg", "Qt5Agg"]:
     try:
-        matplotlib.use("TkAgg")
+        matplotlib.use(backend)
+        backend_set = True
+        break
     except ImportError:
-        pass
+        continue
+
+if not backend_set:
+    print("Warning: No GUI backend available. Using non-interactive 'Agg' backend.", file=sys.stderr)
+    matplotlib.use("Agg")
 
 plt.ion()
-env_path = Path(__file__).parent.parent / ".env"
+env_path = Path(__file__).parent.parent.parent / ".env"
 load_dotenv(env_path)
 
 
@@ -29,6 +35,9 @@ def get_db_engine():
     db_user = os.getenv("POSTGRES_USER")
     db_password = os.getenv("POSTGRES_PASSWORD")
 
+    if not all([db_name, db_user, db_password]):
+        raise ValueError("Missing required database credentials")
+
     connection_string = (
         f"postgresql://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}"
     )
@@ -39,18 +48,20 @@ def extract_order_data():
     """Extract purchase data for order frequency analysis."""
     engine = get_db_engine()
 
-    query = """
-    SELECT user_id, price
-    FROM customers 
+    try:
+        query = """
+        SELECT user_id, price
+        FROM customers 
 
-    WHERE event_type = 'purchase'
-        AND price IS NOT NULL
-        AND price > 0
-    """
+        WHERE event_type = 'purchase'
+            AND price IS NOT NULL
+            AND price > 0
+        """
 
-    data = pd.read_sql_query(query, engine)
-    engine.dispose()
-    return data
+        data = pd.read_sql_query(query, engine)
+        return data
+    finally:
+        engine.dispose()
 
 
 def create_frequency_chart(data):
@@ -138,32 +149,36 @@ def create_spending_chart(data):
 
 def main():
     """Main function to execute order frequency and spending analysis."""
+    print("Connecting to database and extracting order data...")
+    data = extract_order_data()
+
+    if data.empty:
+        print("No order data found.")
+        return
+
+    print(f"Found {len(data):,} purchase records")
+
+    fig1 = create_frequency_chart(data)
+    plt.show()
     try:
-        print("Connecting to database and extracting order data...")
-        data = extract_order_data()
-
-        if data.empty:
-            print("No order data found.")
-            return
-
-        print(f"Found {len(data):,} purchase records")
-
-        fig1 = create_frequency_chart(data)
-        plt.show()
         input("Press Enter for next chart...")
+    except (KeyboardInterrupt, EOFError):
+        pass
+    finally:
         plt.close(fig1)
 
-        fig2 = create_spending_chart(data)
-        plt.show()
+    fig2 = create_spending_chart(data)
+    plt.show()
+    try:
         input("Press Enter to exit...")
+    except (KeyboardInterrupt, EOFError):
+        pass
+    finally:
         plt.close(fig2)
-
-    except KeyboardInterrupt:
-        print("\n\nProgram interrupted by user. Exiting gracefully...")
-        plt.close('all')
-    except Exception as e:
-        print(f"Error: {e}")
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        pass
