@@ -1,8 +1,10 @@
 #!/bin/bash
 
-if [ -f "../.env" ]; then
-    source ../.env
+if [ -f "../../.env" ]; then
+    source ../../.env
 fi
+
+
 
 execute_sql() {
     local sql_query="$1"

@@ -1,8 +1,10 @@
 #!/bin/bash
 
-if [ -f "../.env" ]; then
-    source ../.env
+if [ -f "../../.env" ]; then
+    source ../../.env
 fi
+
+
 
 check_existing_data() {
     local existing_rows=$(docker exec "$POSTGRES_CONTAINER" psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -t -c "SELECT COUNT(*) FROM customers;" 2>/dev/null | tr -d ' ')

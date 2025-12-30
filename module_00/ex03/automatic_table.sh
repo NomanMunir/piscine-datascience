@@ -1,9 +1,11 @@
 #!/bin/bash
 
 # Load environment variables from .env file if it exists
-if [ -f "../.env" ]; then
-    source ../.env
+if [ -f "../../.env" ]; then
+    source ../../.env
 fi
+
+
 
 check_existing_data() {
     local table_name=$1
@@ -72,7 +74,7 @@ EOF
 process_csv_file() {
     local csv_file=$1
     local table_name=$(basename "$csv_file" .csv)
-    local csv_path="$DATA_PATH/customer/$csv_file"
+    local csv_path="$CONTAINER_DATA_PATH/customer/$csv_file"
     
     echo ""
     echo "Processing: $csv_file -> Table: $table_name"
@@ -96,7 +98,7 @@ process_csv_file() {
 echo "Starting automatic table creation for all CSV files..."
 
 echo "Scanning for CSV files..."
-csv_files=($(docker exec "$POSTGRES_CONTAINER" find "$DATA_PATH/customer" -name "*.csv" -type f -exec basename {} \;))
+csv_files=($(docker exec "$POSTGRES_CONTAINER" find "$CONTAINER_DATA_PATH/customer" -name "*.csv" -type f -exec basename {} \;))
 
 if [ ${#csv_files[@]} -eq 0 ]; then
     echo "✗ No CSV files found in customer folder"

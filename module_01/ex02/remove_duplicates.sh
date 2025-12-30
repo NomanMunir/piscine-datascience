@@ -1,8 +1,10 @@
 #!/bin/bash
 
-if [ -f "../.env" ]; then
-    source ../.env
+if [ -f "../../.env" ]; then
+    source ../../.env
 fi
+
+
 
 check_customers_exists() {
     local table_exists=$(docker exec "$POSTGRES_CONTAINER" psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -t -c "
