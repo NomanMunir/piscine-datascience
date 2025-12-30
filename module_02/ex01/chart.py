@@ -1,13 +1,28 @@
+import matplotlib
 import matplotlib.pyplot as plt
 import pandas as pd
 import os
+import sys
 from pathlib import Path
 from dotenv import load_dotenv
 import matplotlib.dates as mdates
 from sqlalchemy import create_engine
 
+backend_set = False
+for backend in ["TkAgg", "Qt5Agg"]:
+    try:
+        matplotlib.use(backend)
+        backend_set = True
+        break
+    except ImportError:
+        continue
+
+if not backend_set:
+    print("Warning: No GUI backend available. Using non-interactive 'Agg' backend.", file=sys.stderr)
+    matplotlib.use("Agg")
+
 plt.ion()
-env_path = Path(__file__).parent.parent / ".env"
+env_path = Path(__file__).parent.parent.parent / ".env"
 load_dotenv(env_path)
 
 
@@ -19,27 +34,32 @@ def get_data():
     db_user = os.getenv("POSTGRES_USER")
     db_password = os.getenv("POSTGRES_PASSWORD")
 
+    if not all([db_name, db_user, db_password]):
+        raise ValueError("Missing required database credentials")
+
     connection_string = (
         f"postgresql://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}"
     )
     engine = create_engine(connection_string)
 
-    query = """
-    SELECT event_time, price, user_id
-    FROM customers 
-    WHERE event_type = 'purchase'
-        AND event_time >= '2022-10-01'
-        AND event_time < '2023-02-28'
-    """
+    try:
+        query = """
+        SELECT event_time, price, user_id
+        FROM customers 
+        WHERE event_type = 'purchase'
+            AND event_time >= '2022-10-01'
+            AND event_time < '2023-02-28'
+        """
 
-    data = pd.read_sql_query(query, engine)
-    engine.dispose()
+        data = pd.read_sql_query(query, engine)
 
-    data["event_time"] = pd.to_datetime(data["event_time"])
-    data["date"] = data["event_time"].dt.date
-    data["month"] = data["event_time"].dt.to_period("M")
+        data["event_time"] = pd.to_datetime(data["event_time"])
+        data["date"] = data["event_time"].dt.date
+        data["month"] = data["event_time"].dt.to_period("M")
 
-    return data
+        return data
+    finally:
+        engine.dispose()
 
 
 def chart1_customers_per_day(data):
@@ -69,8 +89,12 @@ def chart1_customers_per_day(data):
     plt.grid(True, alpha=0.3)
     plt.tight_layout()
     plt.show(block=False)
-    input("Press Enter for Chart 2...")
-    plt.close()
+    try:
+        input("Press Enter for Chart 2...")
+    except (KeyboardInterrupt, EOFError):
+        pass
+    finally:
+        plt.close()
 
 
 def chart2_sales_by_month(data):
@@ -90,8 +114,12 @@ def chart2_sales_by_month(data):
     plt.grid(True, alpha=0.3, axis="y")
     plt.tight_layout()
     plt.show(block=False)
-    input("Press Enter for Chart 3...")
-    plt.close()
+    try:
+        input("Press Enter for Chart 3...")
+    except (KeyboardInterrupt, EOFError):
+        pass
+    finally:
+        plt.close()
 
 
 def chart3_avg_spend_per_day(data):
@@ -117,14 +145,22 @@ def chart3_avg_spend_per_day(data):
     plt.grid(True, alpha=0.3)
     plt.tight_layout()
     plt.show(block=False)
-    input("Press Enter to exit...")
-    plt.close()
+    try:
+        input("Press Enter to exit...")
+    except (KeyboardInterrupt, EOFError):
+        pass
+    finally:
+        plt.close()
 
 
 def main():
     """Main function to execute chart creation process"""
     print("Loading purchase data...")
     data = get_data()
+
+    if data.empty:
+        print("\nNo purchase data available for the specified period.")
+        return
 
     print(f"Found {len(data):,} purchases")
     print(f"Total sales: ₳{data['price'].sum():,.2f}")
@@ -138,5 +174,4 @@ if __name__ == "__main__":
     try:
         main()
     except KeyboardInterrupt:
-        print("\n\nProgram interrupted by user. Exiting gracefully...")
-        plt.close('all')
+        pass

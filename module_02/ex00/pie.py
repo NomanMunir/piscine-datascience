@@ -2,21 +2,27 @@ import matplotlib
 import matplotlib.pyplot as plt
 import pandas as pd
 import os
+import sys
 from pathlib import Path
 from dotenv import load_dotenv
 from sqlalchemy import create_engine
 
-try:
-    matplotlib.use("Qt5Agg")
-except ImportError:
+backend_set = False
+for backend in ["Qt5Agg", "TkAgg"]:
     try:
-        matplotlib.use("TkAgg")
+        matplotlib.use(backend)
+        backend_set = True
+        break
     except ImportError:
-        pass
+        continue
+
+if not backend_set:
+    print("Warning: No GUI backend available. Using non-interactive 'Agg' backend.", file=sys.stderr)
+    matplotlib.use("Agg")
 
 plt.ion()
 
-env_path = Path("../.env")
+env_path = Path("../../.env")
 load_dotenv(env_path)
 
 
@@ -39,24 +45,35 @@ def get_db_engine():
 def main():
     engine = get_db_engine()
 
-    query = """
-    SELECT 
-        COALESCE(event_type, 'unknown') as action,
-        COUNT(*) as count
-    FROM customers 
-    GROUP BY event_type
-    ORDER BY count DESC;
-    """
+    try:
+        query = """
+        SELECT 
+            COALESCE(event_type, 'unknown') as action,
+            COUNT(*) as count
+        FROM customers 
+        GROUP BY event_type
+        ORDER BY count DESC;
+        """
 
-    data = pd.read_sql_query(query, engine)
-    engine.dispose()
+        data = pd.read_sql_query(query, engine)
 
-    print("User behavior data:")
-    print(data)
-    print(f"Total events: {data['count'].sum():,}")
+        print("User behavior data:")
+        print(data)
+        print(f"Total events: {data['count'].sum():,}")
+    finally:
+        engine.dispose()
+
+    # Check for empty data
+    if data.empty:
+        print("\nNo data available to plot.")
+        return
 
     fig, ax = plt.subplots(figsize=(12, 10))
-    colors = ["#FF6B6B", "#4ECDC4", "#45B7D1", "#FFA07A"]
+    
+    # Generate colors and explode values dynamically based on data length
+    num_categories = len(data)
+    colors = plt.cm.Set3(range(num_categories))
+    explode = [0.05] * num_categories
 
     ax.pie(
         data["count"],
@@ -64,7 +81,7 @@ def main():
         colors=colors,
         autopct="%1.1f%%",
         startangle=90,
-        explode=(0.05, 0.05, 0.05, 0.05),
+        explode=explode,
     )
 
     ax.set_title("Pie Chart", fontsize=18, fontweight="bold")
@@ -73,13 +90,14 @@ def main():
     plt.show(block=False)
     try:
         input("Press Enter to exit...")
-    except KeyboardInterrupt:
-        print("\n\nProgram interrupted by user. Exiting gracefully...")
+    except (KeyboardInterrupt, EOFError):
+        print("\n\nProgram interrupted. Exiting gracefully...")
+    finally:
+        plt.close(fig)
 
 
 if __name__ == "__main__":
     try:
         main()
     except KeyboardInterrupt:
-        print("\n\nProgram interrupted by user. Exiting gracefully...")
-        plt.close('all')
+        pass
