@@ -12,7 +12,6 @@ from sklearn.preprocessing import StandardScaler
 import numpy as np
 from sqlalchemy import create_engine
 
-# Try to use interactive backends, fall back to Agg if none available
 backend_set = False
 for backend in ["TkAgg", "Qt5Agg"]:
     try:
@@ -27,7 +26,7 @@ if not backend_set:
     matplotlib.use("Agg")
 
 plt.ion()
-env_path = Path(__file__).parent.parent / ".env"
+env_path = Path(__file__).parent.parent.parent / ".env"
 load_dotenv(env_path)
 
 

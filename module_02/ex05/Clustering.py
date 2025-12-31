@@ -12,7 +12,6 @@ from pathlib import Path
 from dotenv import load_dotenv
 from sqlalchemy import create_engine
 
-# Try to use interactive backends, fall back to Agg if none available
 backend_set = False
 for backend in ["TkAgg", "Qt5Agg"]:
     try:
@@ -27,7 +26,7 @@ if not backend_set:
     matplotlib.use("Agg")
 
 plt.ion()
-env_path = Path(__file__).parent.parent / ".env"
+env_path = Path(__file__).parent.parent.parent / ".env"
 load_dotenv(env_path)
 
 
@@ -328,7 +327,6 @@ def create_four_key_visualizations(data):
 
     segment_metrics.columns = ["Count", "Avg_Spent", "Avg_Purchases", "Avg_Recency"]
 
-    # Create subplot for business metrics
     fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(16, 10))
     fig.suptitle(
         "Business Intelligence: Customer Segment Analysis",
