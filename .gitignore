@@ -357,3 +357,5 @@ personal/
 # Test outputs that shouldn't be committed
 test_output/
 debug_output/
+module_04/ex00/predictions.txt
+module_04/ex00/truth.txt

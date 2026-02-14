@@ -1,0 +1,206 @@
+Training Piscine datascience - 4
+The futur
+Summary: Today, you will see some model to predict the future
+Version: 1.00Contents
+I General rules 2
+II Introductions 3
+III Exercise 00 4
+IV Exercise 01 6
+V Exercise 02 7
+VI Exercise 03 9
+VII Exercise 04 10
+VIII Exercise 05 12
+IX Exercise 06 14
+X Submission and peer-evaluation 16
+1Chapter I
+General rules
+• You have to render your modules from a computer in the cluster either using a
+virtual machine:
+◦ You can choose the operating system to use for your virtual machine
+◦ Your virtual machine must have all the necessary software to realize your
+project. This software must be configured and installed.
+• Or you can use the computer directly in case the tools are available.
+◦ Make sure you have the space on your session to install what you need for all
+the modules (use the goinfre if your campus has it)
+◦ You must have everything installed before the evaluations
+• Your functions should not quit unexpectedly (segmentation fault, bus error, double
+free, etc) apart from undefined behaviors. If this happens, your project will be
+considered non functional and will receive a 0 during the evaluation.
+• We encourage you to create test programs for your project even though this work
+won’t have to be submitted and won’t be graded. It will give you a chance
+to easily test your work and your peers’ work. You will find those tests especially
+useful during your defence. Indeed, during defence, you are free to use your tests
+and/or the tests of the peer you are evaluating.
+• Submit your work to your assigned git repository. Only the work in the git reposi-
+tory will be graded. If Deepthought is assigned to grade your work, it will be done
+after your peer-evaluations. If an error happens in any section of your work during
+Deepthought’s grading, the evaluation will stop.
+• By Odin, by Thor ! Use your brain !!!
+2Chapter II
+Introductions
+Data Scientists often use tools such as techno python, Jupyter Notebook, Julia ...
+It is up to you to find the tools that suit you. You are free to use any language of
+your choice for this module.
+The role of the data scientist is to predict "the future" with automatic learning models
+on past data, he must be a force of proposal to explain the possible interest to the
+implementation of his models, create tools to help decision making.
+3Chapter III
+Exercise 00
+Exercise 00
+Exercice 00 : Confusion Matrix
+Turn-in directory : ex00/
+Files to turn in : Confusion_Matrix.*
+Allowed functions : lib to display the image only
+• You have to do the calculations by yourself. But you can use any library to display
+the graph
+• Print and display matrix confusion
+• You will have to re-use this exercice later on, so make sure you understand it. This
+will be checked during the evaluation
+4Training Piscine datascience - 4 The futur
+$>./Confusion\_Matrix.* predictions.txt truth.txt
+precision recall f1-score total
+Jedi 0.45 0.51 0.48 49
+Sith 0.47 0.41 0.44 51
+accuracy 0.46 100
+[[25 24]
+[30 21]]
+$>
+If this exercise is wrong, the eval stop here : it’s over.
+5Chapter IV
+Exercise 01
+Exercise 01
+Exercice 01 : It is warm
+Turn-in directory : ex01/
+Files to turn in : Heatmap.*
+Allowed functions : All
+• Make a Heatmap to see the Correlation Coefficient between the data
+6Chapter V
+Exercise 02
+Exercise 02
+Exercice 02 : Variances
+Turn-in directory : ex02/
+Files to turn in : variances.*
+Allowed functions : All
+• Calculate the variance of each skill
+• Add up the variances to see how many components needed to reach 90
+• Display a graph representing the addition of your variances
+For Exemple:
+Variances (Percentage):
+[4.48960353e+01 1.84721038e+01 9.18338543e+00 6.44633272e+00
+5.35186638e+00 3.89518676e+00 2.20877147e+00 1.56404980e+00
+1.34482203e+00 1.13191496e+00 9.83404501e-01 9.38664017e-01
+8.41969101e-01 6.84759840e-01 4.79278013e-01 2.84395361e-01
+2.57613460e-01 1.90436550e-01 1.66006155e-01 1.55535318e-01
+9.90525123e-02 9.52472611e-02 8.82086046e-02 7.83341693e-02
+5.66200463e-02 4.99139931e-02 2.59875603e-02 2.21604256e-02
+5.12408800e-03 2.39251211e-03 4.27853873e-04]
+Cumulative Variances (Percentage):
+[ 44.89603531 63.36813909 72.55152452 78.99785725 84.34972363
+88.2449104 90.45368186 92.01773166 93.3625537 94.49446866
+95.47787316 96.41653717 97.25850628 97.94326612 98.42254413
+98.70693949 98.96455295 99.1549895 99.32099566 99.47653097
+99.57558349 99.67083075 99.75903935 99.83737352 99.89399357
+99.94390756 99.96989512 99.99205555 99.99717963 99.99957215
+100. ]
+7Training Piscine datascience - 4 The futur
+For Exemple:
+Perhaps you should rework your data with what you have seen in the
+previous module if your answers are too far from the examples.
+8Chapter VI
+Exercise 03
+Exercise 03
+Exercice 03 : Feature Selection
+Turn-in directory : ex03/
+Files to turn in : Feature_Selection.*
+Allowed functions : All
+The data seems too Multicollinearity, you will have to make a Detecting Multi-
+collinearity model.
+There are a number of models for detecting the importance of variables (Lasso, Back-
+ward Elimination, Step Forward Selection, ...)
+But here you will have to use the Variance Inflation Factor (VIF)
+• Display the VIF of your data
+• Keep only the features so that the VIF goes under 5, and display the features
+VIF Tolerance
+Empowered 36.763714 0.027201
+Stims 405.023336 0.002469
+Prescience 60.041733 0.016655
+Recovery 799.105946 0.001251
+Strength 3786.400419 0.000264
+... ... ...
+9Chapter VII
+Exercise 04
+Exercise 04
+Exercice 04 : Forest
+Turn-in directory : ex04/
+Files to turn in : Tree.*
+Allowed functions : All
+• Make a Decision Tree Classifier or Random Forest Classifier model
+• Display the tree in a graph
+• YourprogrammusttaketheTrain_knight.csvfileasfirstargument,theTest_knight.csv
+file as second argument and write a Tree.txt file with the prediction (one prediction
+per line, either Jedi or Sith, in the same format as the prediction.txt file)
+• Your model must have minimum 90% of f1-score
+10Training Piscine datascience - 4 The futur
+X[27] <= 0.489
+gini = 0.471
+samples = 381
+value = [145, 236]
+True False
+X[20] <= 0.345 X[13] <= 0.013
+gini = 0.148 gini = 0.1
+samples = 249 samples = 132
+value = [20, 229] value = [125, 7]
+v X s a [ a g l 1 u m i 3 n e p ] i = l = < e s = [ 0 9 = . , 0 0 2 . 7 2 0 2 3 3 5 7 6 3 ] v X s a [ a g l 8 u m i ] n e p i < = l = e = s [ 0 1 0 = . 1 . 2 2 , 6 1 3 2 3 1 ] v s a a g lu m in e p i = l = e s [ 0 0 = . , 0 3 3 ] v s X a a [ l g u m 6 i e ] n p i < = l e = = s [ 1 0 = 0 2 . . 0 5 2 1 6 , 0 2 4 6 9 ]
+v X s a [ a g l 2 u m i 7 n e p ] i = l = < e s = [ 0 4 = . , 0 0 2 . 3 2 4 1 6 1 6 5 9 7 ] X v s [ a g a 1 l i u m 9 n e ] i p = < = le = s 0 [ 5 . = 0 4 , . 1 1 0 1 5 2 9 7 ] 8 v s a a g lu m in e p i = l = e s [ 0 0 = . , 0 2 2 ] v s a a l g u m i e n p i = l e = s [ 1 0 = 1 .0 , 1 0 1 ] X v [ s 2 a g a l 8 i u m n ] e i p < = = le = s 0 [ 4 0 . = 4 , . 2 9 3 7 8 ] 2 v s X a a g [ lu m 0 in e ] p i < = l = e = s [ 0 1 = 0 . 2 0 . 1 1 1 1 , 5 6 2 1 9 2 ]
+v X s a [ a g l 1 u m i 9 n e p ] i = l = < e s = [ 0 2 = . , 0 0 2 . 1 2 0 1 9 1 1 1 3 4 ] X v [ g s 2 a a i l 8 n u m ] i e p = < = l e = 0 s [ . 2 0 4 = , . 4 2 4 4 6 2 ] 6 X v g s [ a a 1 i l n u m 7 i e ] p = < = l e 0 = s [ . 5 4 = 0 , 9 . 4 2 4 9 ] 3 v s a a g lu m in e p i = l = e s [ 0 0 = . , 0 8 8 ] X v [ g s 1 a a i l 2 n u m ] i e p = < = l e = 0 s [ . 1 0 3 = , . 7 1 3 5 4 1 ] 3 v s a a g lu m in e p i = l = e s [ 0 3 = . , 0 0 3 ] v s a a g lu m in e p i = l = e s [ 0 0 = . , 0 1 1 ] v s a a lu m g e i p n = l i e = s [ 1 = 0 2 . 1 0 1 , 2 0 1 ]
+X v [ g s 2 a a i l 7 n u m ] i e p = < = l e = 0 s [ . 1 0 2 = , . 4 3 6 5 7 2 ] 6 v X s a [ a l 2 g u m 1 i e n p ] i = l < e = s = [ 1 0 = , 0 . 0 2 . 2 5 1 0 0 5 5 6 3 ] v s a a g lu m in e p i = l = e s [ 0 2 = . , 0 0 2 ] v s a a g lu m in e p i = l = e s [ 0 0 = . , 0 4 4 ] v s a a g lu m in e p i = l = e s [ 0 0 = . , 0 3 3 ] X v [ g s 2 a a i l 1 n u m ] i e p = < = l e = 0 s [ . 5 0 2 = , . 7 2 1 8 6 2 ] 7 v s a a g lu m in e p i = l = e s [ 0 0 = . , 0 3 3 ] v s a a g lu m in e p i = l = e s [ 0 1 = . , 0 0 1 ]
+v s a a g lu m in e p i = l = e s [ 0 0 = . , 0 6 6 ] v s a a g lu m in e p i = l = e s [ 0 1 = . , 0 0 1 ] v s a a lu m g e i p n = l i e = s [ 0 = 0 , . 1 0 1 8 8 9 9 ] X v s [ a g a 2 l i u m 1 n e ] i p = < = le = s 0 [ 1 . = 0 1 , . 1 1 5 1 1 6 8 7 ] 1 v s a a g lu m in e p i = l = e s [ 0 0 = . , 0 1 1 ] v s a a g lu m in e p i = l = e s [ 0 5 = . , 0 0 5 ]
+gini = 0.0 gini = 0.0
+samples = 1 samples = 16
+value = [1, 0] value = [0, 16]
+You will probably need your files Training_knight.csv and
+Validation_knight.csv from the module03
+11Chapter VIII
+Exercise 05
+Exercise 05
+Exercice 05 : KNN
+Turn-in directory : ex05/
+Files to turn in : KNN.*
+Allowed functions : All
+• YourprogrammusttaketheTrain_knight.csvfileasfirstargument,theTest_knight.csv
+file as second argument and write a KNN.txt file with the prediction (one prediction
+per line, either Jedi or Sith, in the same format as the prediction.txt file)
+• Make a KNN that calculates the precision % according to the number of k-value in
+your Validation
+• Display the graph
+• You must have a minimum of 92% f1-score
+12Training Piscine datascience - 4 The futur
+You will probably need your files Training_knight.csv and
+Validation_knight.csv from the module03
+Do you have convergence problems? If so, you should use what you
+learned in the previous exercises in this module and in the Predecent
+module to improve your predictions.
+13Chapter IX
+Exercise 06
+Exercise 06
+Exercice 06 : democracy !
+Turn-in directory : ex06/
+Files to turn in : democracy.*
+Allowed functions : All
+• Choose a third model of your choice
+• Make a Voting classifier
+• YourprogrammusttaketheTrain_knight.csvfileasfirstargument,theTest_knight.csv
+file as second argument and write a Voting.txt file with the prediction (one predic-
+tion per line, either Jedi or Sith, in the same format as the prediction.txt file)
+• You must have a minimum of 94% f1-score
+14Training Piscine datascience - 4 The futur
+You will probably need your files Training_knight.csv and
+Validation_knight.csv from the module03
+15Chapter X
+Submission and peer-evaluation
+Turn in your assignment in your Git repository as usual. Only the work inside your
+repository will be evaluated during the defense. Don’t hesitate to double check the
+names of your folders and files to ensure they are correct.
+The evaluation process will happen on the computer of the evaluated
+group.
+16
