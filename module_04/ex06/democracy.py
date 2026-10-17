@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import sys
 import pandas as pd
 from sklearn.tree import DecisionTreeClassifier

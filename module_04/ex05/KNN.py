@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import sys
 import os
 import pandas as pd
@@ -23,13 +24,6 @@ def main():
         print(f"Error: {e}")
         sys.exit(1)
         
-    # Use Validation set if available to find best k
-    val_df = None
-    if os.path.exists(val_file):
-        val_df = pd.read_csv(val_file)
-    elif os.path.exists("../../module_03/ex05/Validation_knight.csv"):
-        val_df = pd.read_csv("../../module_03/ex05/Validation_knight.csv")
-        
     X_train = train_df.drop('knight', axis=1)
     y_train = train_df['knight']
     
@@ -43,31 +37,55 @@ def main():
     X_train_scaled = scaler.fit_transform(X_train)
     X_test_scaled = scaler.transform(X_test)
     
-    best_k = 5
-    if val_df is not None:
-        X_val = val_df.drop('knight', axis=1)
-        X_val = X_val[X_train.columns]
-        y_val = val_df['knight']
-        X_val_scaled = scaler.transform(X_val)
-        
-        k_values = range(1, 30)
-        accuracies = []
-        
-        for k in k_values:
-            knn = KNeighborsClassifier(n_neighbors=k)
-            knn.fit(X_train_scaled, y_train)
-            preds = knn.predict(X_val_scaled)
-            acc = accuracy_score(y_val, preds)
-            accuracies.append(acc)
+    # Use Validation set if available to find best k
+    val_df = None
+    candidate_paths = [
+        val_file,
+        "Validation_knight.csv",
+        "../Validation_knight.csv",
+        "../../module_03/ex05/Validation_knight.csv",
+    ]
+    for p in candidate_paths:
+        if os.path.exists(p):
+            val_df = pd.read_csv(p)
+            break
             
-        best_k = k_values[np.argmax(accuracies)]
+    if val_df is not None:
+        X_fit_scaled = X_train_scaled
+        y_fit = y_train
+        X_val = val_df.drop('knight', axis=1)[X_train.columns]
+        X_val_scaled = scaler.transform(X_val)
+        y_val = val_df['knight']
+    else:
+        # Fallback: perform 80/20 train/validation split as in module 03
+        from sklearn.model_selection import train_test_split
+        train_split, val_df = train_test_split(train_df, test_size=0.2, random_state=42, stratify=train_df['knight'])
+        X_fit = train_split.drop('knight', axis=1)
+        y_fit = train_split['knight']
+        fit_scaler = StandardScaler()
+        X_fit_scaled = fit_scaler.fit_transform(X_fit)
+        X_val = val_df.drop('knight', axis=1)[X_fit.columns]
+        X_val_scaled = fit_scaler.transform(X_val)
+        y_val = val_df['knight']
         
-        plt.figure(figsize=(8, 6))
-        plt.plot(k_values, accuracies)
-        plt.xlabel('k values')
-        plt.ylabel('accuracy')
-        plt.tight_layout()
-        plt.show()
+    k_values = range(1, 30)
+    accuracies = []
+    
+    for k in k_values:
+        knn = KNeighborsClassifier(n_neighbors=k)
+        knn.fit(X_fit_scaled, y_fit)
+        preds = knn.predict(X_val_scaled)
+        acc = accuracy_score(y_val, preds)
+        accuracies.append(acc)
+        
+    best_k = k_values[np.argmax(accuracies)]
+    
+    plt.figure(figsize=(8, 6))
+    plt.plot(k_values, accuracies)
+    plt.xlabel('k values')
+    plt.ylabel('accuracy')
+    plt.tight_layout()
+    plt.show()
     
     # Train with best k
     knn = KNeighborsClassifier(n_neighbors=best_k)
